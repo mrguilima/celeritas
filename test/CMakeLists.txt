@@ -113,6 +113,7 @@ if(CELERITAS_USE_VecGeom)
   celeritas_add_test(geometry/GeoParams.test.cc)
   celeritas_add_test(geometry/GeoTrackView.test.cc)
   celeritas_add_test(geometry/LinearPropagator.test.cc)
+  celeritas_add_test(geometry/InFieldPropagator.test.cc)
 
   # CUDA tests: link cuda sources as needed
   if(CELERITAS_USE_CUDA)
