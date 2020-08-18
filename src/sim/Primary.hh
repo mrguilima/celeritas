@@ -10,6 +10,7 @@
 #include "Types.hh"
 // XXX Consider moving initializer_t to a traits class for each "state" thing
 #include "physics/base/ParticleTrackView.hh"
+#include "geometry/GeoTrackView.hh"
 
 namespace celeritas
 {
@@ -29,7 +30,7 @@ struct SimTrackView
  */
 struct Primary
 {
-    // Simulation sate
+    // Simulation state
     SimTrackView::Initializer_t      sim;
     GeoTrackView::Initializer_t      geo;
     ParticleTrackView::Initializer_t particle;
