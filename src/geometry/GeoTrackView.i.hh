@@ -131,7 +131,9 @@ GeoTrackView::get_nav_state(void*                  state,
 }
 
 //---------------------------------------------------------------------------//
-//! Get a reference to the current volume.
+/*!
+ * Get a reference to the current volume.
+ */
 CELER_FUNCTION const vecgeom::VPlacedVolume& GeoTrackView::volume() const
 {
     const vecgeom::VPlacedVolume* vol_ptr = vgstate_.Top();
