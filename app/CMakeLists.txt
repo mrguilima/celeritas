@@ -9,7 +9,9 @@ if(CELERITAS_USE_Geant4 AND CELERITAS_USE_ROOT)
   add_executable(geant-exporter geant-exporter/geant-exporter.cc
     geant-exporter/ActionInitialization.cc
     geant-exporter/DetectorConstruction.cc
-    geant-exporter/PrimaryGeneratorAction.cc)
+    geant-exporter/PrimaryGeneratorAction.cc
+    #geant-exporter/GeantPhysicsTableParser.cc
+    )
   target_link_libraries(geant-exporter
     Celeritas::Core
     Celeritas::IO

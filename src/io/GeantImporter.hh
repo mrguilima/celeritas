@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "GeantParticle.hh"
+#include "GeantPhysicsTable.hh"
 #include "physics/base/ParticleParams.hh"
 #include "physics/base/ParticleDef.hh"
 #include "base/Types.hh"
@@ -44,6 +45,7 @@ class GeantImporter
     struct result_type
     {
         std::shared_ptr<ParticleParams> particle_params;
+        std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
     };
 
   public:
@@ -59,6 +61,8 @@ class GeantImporter
   private:
     // Populate the shared_ptr<ParticleParams> with particle information
     std::shared_ptr<ParticleParams> load_particle_data();
+    // Populate a vector of GeantPhysicsTable objects
+    std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
 
   public:
     std::unique_ptr<TFile> root_input_;

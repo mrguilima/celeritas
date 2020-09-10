@@ -26,6 +26,7 @@
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
 #include "io/GeantParticle.hh"
+#include "io/GeantPhysicsTable.hh"
 
 using celeritas::GeantParticle;
 using namespace geant_exporter;
@@ -86,6 +87,23 @@ void store_particles(TFile* root_file, G4ParticleTable* particle_table)
 
 //---------------------------------------------------------------------------//
 /*!
+ * Write physics table data to ROOT.
+ *
+ * The ROOT file must be open before this call.
+ */
+void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
+{
+    REQUIRE(root_file);
+    REQUIRE(particle_table);
+
+    cout << "Exporting physics tables..." << endl;
+    TTree tree_tables("tables", "tables");
+
+    root_file->Write();
+}
+
+//---------------------------------------------------------------------------//
+/*!
  * This application exports particle and physics table data constructed by the
  * selected physics list. Output data is stored into a ROOT file.
  */
@@ -120,7 +138,7 @@ int main(int argc, char* argv[])
 
     run_manager.SetUserInitialization(physics_list.release());
 
-    // Run a single partlce to generate the physics tables
+    // Run a single particle to generate the physics tables
     auto action_initialization = std::make_unique<ActionInitialization>();
     run_manager.SetUserInitialization(action_initialization.release());
 
@@ -135,6 +153,9 @@ int main(int argc, char* argv[])
 
     // Store particle information
     store_particles(&root_output, G4ParticleTable::GetParticleTable());
+
+    // Store physics tables
+    store_physics_tables(&root_output, G4ParticleTable::GetParticleTable());
 
     cout << "Writing..." << std::flush;
     root_output.Close();

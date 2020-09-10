@@ -44,14 +44,17 @@ GeantImporter::result_type GeantImporter::operator()()
 {
     result_type geant_data;
     geant_data.particle_params = this->load_particle_data();
+    geant_data.physics_tables  = this->load_physics_table_data();
 
     ENSURE(geant_data.particle_params);
+    ENSURE(geant_data.physics_tables);
+
     return geant_data;
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Load and convert vector<GeantParticle> to ParticleParams
+ * Load all GeantParticle objects from the ROOT file as ParticleParams
  */
 std::shared_ptr<ParticleParams> GeantImporter::load_particle_data()
 {
@@ -103,6 +106,17 @@ std::shared_ptr<ParticleParams> GeantImporter::load_particle_data()
 
     // Construct ParticleParams from the definitions
     return std::make_shared<ParticleParams>(std::move(defs));
+}
+
+//---------------------------------------------------------------------------//
+/*!
+ * Load all GeantPhysicsTable objects from the ROOT file into a vector
+ */
+std::shared_ptr<std::vector<GeantPhysicsTable>>
+GeantImporter::load_physics_table_data()
+{
+    // TODO
+    return std::make_shared<std::vector<GeantPhysicsTable>>();
 }
 
 //---------------------------------------------------------------------------//

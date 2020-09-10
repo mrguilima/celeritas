@@ -10,6 +10,11 @@
 
 // clang-format off
 #pragma link C++ class celeritas::GeantParticle+;
+#pragma link C++ class celeritas::GeantPhysicsTable+;
+#pragma link C++ class celeritas::GeantPhysicsVector+;
+#pragma link C++ class celeritas::GeantModel+;
+#pragma link C++ class celeritas::GeantProcess+;
+#pragma link C++ class celeritas::GeantTableType+;
 // clang-format on
 
 #endif
