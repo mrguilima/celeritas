@@ -15,6 +15,9 @@
 #pragma link C++ class celeritas::GeantModel+;
 #pragma link C++ class celeritas::GeantProcess+;
 #pragma link C++ class celeritas::GeantTableType+;
+#pragma link C++ class celeritas::GeantTableType+;
+#pragma link C++ class celeritas::OpaqueId+;
+#pragma link C++ class celeritas::ParticleMd+;
 // clang-format on
 
 #endif

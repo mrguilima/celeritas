@@ -125,6 +125,13 @@ if(CELERITAS_USE_ROOT)
 
   root_generate_dictionary(CeleritasRootGeantParticle
     io/GeantParticle.hh
+    io/GeantPhysicsTable.hh
+    io/GeantPhysicsVector.hh
+    io/GeantProcess.hh
+    io/GeantModel.hh
+    io/GeantTableType.hh
+    physics/base/ParticleMd.hh
+    base/OpaqueId.hh
     LINKDEF io/GeantParticleLinkDef.h
   )
 

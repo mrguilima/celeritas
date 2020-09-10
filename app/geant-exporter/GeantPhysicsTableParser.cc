@@ -42,7 +42,8 @@
 GeantPhysicsTableParser::GeantPhysicsTableParser(TFile* root_file)
 {
     REQUIRE(root_file);
-    this->root_file_.reset(root_file);
+    this->tree_tables_ = std::make_unique<TTree>("tables", "tables");
+    tree_tables_->Branch("GeantPhysicsTable", &(this->table_));
 }
 
 //---------------------------------------------------------------------------//
@@ -52,197 +53,262 @@ GeantPhysicsTableParser::GeantPhysicsTableParser(TFile* root_file)
 void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                                                 G4ParticleDefinition* particle)
 {
-    // TO BE FIXED
+    // Particle name
+    std::string particle_name = particle->GetParticleName();
+    replace_characters(particle_name, "+", "Plus");
+    replace_characters(particle_name, "-", "Minus");
+
+    // Process type
     G4ProcessType process_type    = process->GetProcessType();
     std::string process_type_name = process->GetProcessTypeName(process_type);
 
-    std::string tree_name;
+    // Process
+    std::string  process_name = process->GetProcessName();
+    GeantProcess process_enum(process_name);
 
-    this->table_.particle = PDGNumber(particle->GetPDGEncoding());
-
-    this->particle_ = particle->GetParticleName();
-    this->pdg_      = particle->GetPDGEncoding();
-    this->process_  = process->GetProcessName();
-    this->model_    = "NA";
+    // Write table_
+    this->table_.process_type = (GeantProcessType)process_type;
+    this->table_.process      = process_enum;
+    this->table_.particle     = PDGNumber(particle->GetPDGEncoding());
 
     auto em_process          = dynamic_cast<G4VEmProcess*>(process);
-    auto eloss_process       = dynamic_cast<G4VEnergyLossProcess*>(process);
+    auto energy_loss         = dynamic_cast<G4VEnergyLossProcess*>(process);
     auto multiple_scattering = dynamic_cast<G4VMultipleScattering*>(process);
 
     //-----------------------------------------------------------------------//
-    //! G4VEmProcess
+    // G4VEmProcess tables
     if (em_process)
     {
-        for (int i = 0; i < em_process->GetNumberOfModels(); i++)
+        for (ssize_t i = 0; i < em_process->GetNumberOfModels(); i++)
         {
             G4PhysicsTable* table = nullptr;
 
-            model_ = em_process->GetModelByIndex(i)->GetName();
+            // Model
+            std::string model_name = em_process->GetModelByIndex(i)->GetName();
+            GeantModel  model(model_name);
 
+            // Write table_
+            this->table_.model = model;
+
+            // A same model can have both Lambda and LambdaPrim tables
             if (em_process->LambdaTable())
             {
-                table       = em_process->LambdaTable();
-                table_type_ = "Lambda";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = em_process->LambdaTable();
+
+                std::string    table_type_name = "Lambda";
+                GeantTableType table_type(table_type_name);
+
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
             if (em_process->LambdaTablePrim())
             {
-                table       = em_process->LambdaTablePrim();
-                table_type_ = "LambdaPrim";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = em_process->LambdaTablePrim();
+
+                std::string    table_type_name = "LambdaPrim";
+                GeantTableType table_type(table_type_name);
+
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
             if (table == nullptr)
             {
-                std::cout << "No available table in ";
-                std::cout << "GeantPhysicsTableParser::addPhysicsTableTree ";
-                std::cout << "for G4VEmProcess " << process_ << ".";
-                std::cout << particle_ << std::endl;
+                std::cout << "No available table in "
+                             "GeantPhysicsTableParser::addPhysicsTableTree "
+                             "for G4VEmProcess "
+                          << process_name << "." << particle_name << std::endl;
             }
         }
     }
 
     //-----------------------------------------------------------------------//
-    //! G4VEnergyLossProcess
-    else if (eloss_process)
+    // G4VEnergyLossProcess tables
+    else if (energy_loss)
     {
-        for (int i = 0; i < eloss_process->NumberOfModels(); i++)
+        for (ssize_t i = 0; i < energy_loss->NumberOfModels(); i++)
         {
             G4PhysicsTable* table = nullptr;
 
-            model_ = eloss_process->GetModelByIndex(i)->GetName();
+            // Model
+            std::string model_name = energy_loss->GetModelByIndex(i)->GetName();
+            GeantModel  model(model_name);
 
-            if (eloss_process->DEDXTable())
+            // Write table_
+            this->table_.model = model;
+
+            if (energy_loss->DEDXTable())
             {
-                table       = eloss_process->DEDXTable();
-                table_type_ = "DEDX";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->DEDXTable();
+
+                std::string table_type_name = "DEDX";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->DEDXTableForSubsec())
+            if (energy_loss->DEDXTableForSubsec())
             {
-                table       = eloss_process->DEDXTableForSubsec();
-                table_type_ = "SubDEDX";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->DEDXTableForSubsec();
+
+                std::string table_type_name = "SubDEDX";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->DEDXunRestrictedTable())
+            if (energy_loss->DEDXunRestrictedTable())
             {
-                table       = eloss_process->DEDXunRestrictedTable();
-                table_type_ = "DEDXnr";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->DEDXunRestrictedTable();
+
+                std::string table_type_name = "DEDXnr";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->IonisationTable())
+            if (energy_loss->IonisationTable())
             {
-                table       = eloss_process->IonisationTable();
-                table_type_ = "Ionisation";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->IonisationTable();
+
+                std::string table_type_name = "Ionisation";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->IonisationTableForSubsec())
+            if (energy_loss->IonisationTableForSubsec())
             {
-                table       = eloss_process->IonisationTableForSubsec();
-                table_type_ = "SubIonisation";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->IonisationTableForSubsec();
+
+                std::string table_type_name = "SubIonisation";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->CSDARangeTable())
+            if (energy_loss->CSDARangeTable())
             {
-                table       = eloss_process->CSDARangeTable();
-                table_type_ = "CSDARange";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->CSDARangeTable();
+
+                std::string table_type_name = "CSDARange";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->SecondaryRangeTable())
+            if (energy_loss->SecondaryRangeTable())
             {
-                table       = eloss_process->SecondaryRangeTable();
-                table_type_ = "RangeSec";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->SecondaryRangeTable();
+
+                std::string table_type_name = "RangeSec";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->RangeTableForLoss())
+            if (energy_loss->RangeTableForLoss())
             {
-                table       = eloss_process->RangeTableForLoss();
-                table_type_ = "Range";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->RangeTableForLoss();
+
+                std::string table_type_name = "Range";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->InverseRangeTable())
+            if (energy_loss->InverseRangeTable())
             {
-                table       = eloss_process->InverseRangeTable();
-                table_type_ = "InverseRange";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->InverseRangeTable();
+
+                std::string table_type_name = "InverseRange";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->LambdaTable())
+            if (energy_loss->LambdaTable())
             {
-                table       = eloss_process->LambdaTable();
-                table_type_ = "Lambda";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->LambdaTable();
+
+                std::string table_type_name = "Lambda";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
-            if (eloss_process->SubLambdaTable())
+            if (energy_loss->SubLambdaTable())
             {
-                table       = eloss_process->SubLambdaTable();
-                table_type_ = "SubLambda";
-                tree_name = table_type_ + "_" + process_ + "_" + model_ + "_";
-                tree_name += particle_;
+                table = energy_loss->SubLambdaTable();
+
+                std::string table_type_name = "SubLambda";
+                std::string tree_name = table_type_name + "_" + process_name
+                                        + "_" + model_name + "_"
+                                        + particle_name;
+
                 write_tree(tree_name, table);
             }
 
             if (table == nullptr)
             {
-                std::cout << "No available table in ";
-                std::cout << "GeantPhysicsTableParser::addPhysicsTableTree ";
-                std::cout << "for G4VEnergyLossProcess " << process_ << ".";
-                std::cout << particle_ << std::endl;
+                std::cout << "No available table in "
+                             "GeantPhysicsTableParser::addPhysicsTableTree "
+                             "for G4VEnergyLossProcess "
+                          << process_name << "." << particle_name << std::endl;
             }
         }
     }
 
     //-----------------------------------------------------------------------//
-    //! G4VMultipleScattering
+    // G4VMultipleScattering tables
     else if (multiple_scattering)
     {
-        for (int i = 0; i < 4; i++)
+        // TODO: Figure out a call to get the number of models. Max is 4.
+        for (ssize_t i = 0; i < 4; i++)
         {
             G4VEmModel* model = multiple_scattering->GetModelByIndex(i);
 
             if (model)
             {
                 G4PhysicsTable* table = model->GetCrossSectionTable();
+
                 if (table)
                 {
-                    model_      = model->GetName();
-                    table_type_ = "LambdaMod" + std::to_string(i + 1);
-                    tree_name   = table_type_ + "_" + process_ + "_";
-                    tree_name += model_ + "_" + particle_;
+                    std::string model_name      = model->GetName();
+                    std::string table_type_name = "LambdaMod"
+                                                  + std::to_string(i + 1);
+
+                    std::string tree_name = table_type_name + "_"
+                                            + process_name + "_" + model_name
+                                            + "_" + particle_name;
+
                     write_tree(tree_name, table);
                 }
             }
@@ -252,111 +318,57 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
     //-----------------------------------------------------------------------//
     else
     {
-        std::cout << "No available code for ";
-        std::cout << particle_ << "." << process_ << std::endl;
+        std::cout << "No available code for " << particle_name << "."
+                  << process_name << std::endl;
     }
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Writes a given physics table as a tree to this->root_output_
+ * Write a given physics table as a tree to this->root_file_
  */
 void GeantPhysicsTableParser::write_tree(std::string     tree_name,
                                          G4PhysicsTable* table)
 {
-    // Replacing special characters. ROOT TTrees do not bode well with them
-    replace_last_character(tree_name, "+", "Plus");
-    replace_last_character(tree_name, "-", "Minus");
+    // Replace special characters
     replace_characters(tree_name, ".", "_");
     replace_characters(tree_name, "-", "_");
-
-    root_output_
-        = std::make_unique<TFile>(root_output_filename_.c_str(), "update");
-
-    TDirectory* tables = (TDirectory*)root_output_->Get("tables");
-
-    if (!tables)
-    {
-        tables = root_output_->mkdir("tables");
-        tables->cd();
-    }
-
-    else
-    {
-        root_output_->Cd("tables");
-    }
-
-    // Creating the TTree
-    TTree* tree = new TTree(tree_name.c_str(), tree_name.c_str());
-
-    tree->Branch("processType", &process_type_, "processType/I");
-    tree->Branch("processTypeName", &process_type_name_);
-    tree->Branch("tableType", &table_type_);
-    tree->Branch("process", &process_);
-    tree->Branch("model", &model_);
-    tree->Branch("particle", &particle_);
-    tree->Branch("pdg", &pdg_, "pdg/I");
-    tree->Branch("vectorType", &vector_type_);
-    tree->Branch("energy", &energy_);
-    tree->Branch("xs_eloss", &xs_eloss_);
-
-    this->vector_type_.clear();
-    this->energy_.clear();
-    this->xs_eloss_.clear();
 
     // G4PhysicsTable is a std::vector<G4PhysicsVector>
     for (auto phys_vector : *table)
     {
-        std::vector<double> phys_vector_energy;
-        std::vector<double> phys_vector_xs_eloss;
+        GeantPhysicsVector geant_physics_vector;
 
-        for (std::size_t j = 0; j < phys_vector->GetVectorLength(); j++)
+        geant_physics_vector.vector_type
+            = (GeantPhysicsVectorType)phys_vector->GetType();
+
+        for (ssize_t j = 0; j < phys_vector->GetVectorLength(); j++)
         {
-            phys_vector_energy.push_back(phys_vector->Energy(j));
-            phys_vector_xs_eloss.push_back((*phys_vector)[j]);
+            geant_physics_vector.energy.push_back(phys_vector->Energy(j));
+            geant_physics_vector.xs_eloss.push_back((*phys_vector)[j]);
         }
 
-        this->vector_type_.push_back(phys_vector->GetType());
-        this->energy_.push_back(phys_vector_energy);
-        this->xs_eloss_.push_back(phys_vector_xs_eloss);
+        this->table_.physics_vectors.push_back(geant_physics_vector);
     }
 
-    tree->Fill();
-
-    this->root_output_->Write();
-    this->root_output_->Close();
+    this->tree_tables_->Fill();
 
     std::cout << "  Added " << tree_name << std::endl;
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Replaces characters in a string
+ * Replace characters in a string
  */
-void replace_characters(std::string&      aString,
-                        std::string const search,
-                        std::string const replace)
+void GeantPhysicsTableParser::replace_characters(std::string&      string,
+                                                 std::string const search,
+                                                 std::string const replace)
 {
     size_t position = 0;
 
-    while ((position = aString.find(search, position)) != std::string::npos)
+    while ((position = string.find(search, position)) != std::string::npos)
     {
-        aString.replace(position, search.length(), replace);
+        string.replace(position, search.length(), replace);
         position += replace.length();
-    }
-}
-
-//---------------------------------------------------------------------------//
-/*!
- * Replaces last character in a string
- */
-void replace_last_character(std::string&      aString,
-                            std::string const search,
-                            std::string const replace)
-{
-    if (aString.back() == search)
-    {
-        aString.pop_back();
-        aString += replace;
     }
 }

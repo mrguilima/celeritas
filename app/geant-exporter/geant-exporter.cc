@@ -25,6 +25,7 @@
 
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
+#include "GeantPhysicsTableParser.hh"
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
 
@@ -96,8 +97,36 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
     REQUIRE(root_file);
     REQUIRE(particle_table);
 
+    // Start parser
+    GeantPhysicsTableParser table_parser(root_file);
+
     cout << "Exporting physics tables..." << endl;
-    TTree tree_tables("tables", "tables");
+
+    G4ParticleTable::G4PTblDicIterator* particle_iterator
+        = G4ParticleTable::GetParticleTable()->GetIterator();
+    particle_iterator->reset();
+
+    while ((*particle_iterator)())
+    {
+        G4ParticleDefinition* g4_particle_def = particle_iterator->value();
+
+        // Skip "dummy" particles: generic ion and geantino
+        if (g4_particle_def->GetPDGEncoding() == 0)
+            continue;
+
+        std::cout << "=============" << std::endl;
+        std::cout << g4_particle_def->GetParticleName() << std::endl;
+        std::cout << "=============" << std::endl;
+
+        G4ProcessVector* process_list
+            = (g4_particle_def->GetProcessManager())->GetProcessList();
+
+        for (std::size_t j = 0; j < process_list->size(); j++)
+        {
+            G4VProcess* process = (*process_list)[j];
+            table_parser.add_physics_table(process, g4_particle_def);
+        }
+    }
 
     root_file->Write();
 }
@@ -157,7 +186,6 @@ int main(int argc, char* argv[])
     // Store physics tables
     store_physics_tables(&root_output, G4ParticleTable::GetParticleTable());
 
-    cout << "Writing..." << std::flush;
     root_output.Close();
 
     cout << " done!" << endl;
