@@ -110,13 +110,32 @@ std::shared_ptr<ParticleParams> GeantImporter::load_particle_data()
 
 //---------------------------------------------------------------------------//
 /*!
- * Load all GeantPhysicsTable objects from the ROOT file into a vector
+ * Load all GeantPhysicsTable objects from the ROOT file as a vector
  */
 std::shared_ptr<std::vector<GeantPhysicsTable>>
 GeantImporter::load_physics_table_data()
 {
-    // TODO
-    return std::make_shared<std::vector<GeantPhysicsTable>>();
+    // Open the 'tables' branch and reserve size for the converted data
+    std::unique_ptr<TTree> tree_tables(root_input_->Get<TTree>("tables"));
+    CHECK(tree_tables);
+
+    std::vector<GeantPhysicsTable> tables;
+    CHECK(tree_tables->GetEntries());
+    tables.resize(tree_tables->GetEntries());
+
+    // Load branch
+    GeantPhysicsTable  a_table;
+    GeantPhysicsTable* temp_table_ptr = &a_table;
+    tree_tables->SetBranchAddress("GeantPhysicsTable", &temp_table_ptr);
+
+    // Populate physics table vector
+    for (ssize_t i : range(tree_tables->GetEntries()))
+    {
+        tree_tables->GetEntry(i);
+        tables.push_back(a_table);
+    }
+
+    return std::make_shared<std::vector<GeantPhysicsTable>>(std::move(tables));
 }
 
 //---------------------------------------------------------------------------//

@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file GeantPhysicsTable.hh
-//! \brief Stores physics table data
+//! \brief Store Geant4 physics tables
 //---------------------------------------------------------------------------//
 #pragma once
 
@@ -21,9 +21,9 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Used by the app/geant-exporter external code to store table data into a
- * ROOT file. The GeantImporter class is responsible for loading
- * said data from the ROOT file into memory.
+ * Store Geant4 physics tables.
+ * The geant-exporter app stores Geant4 physics tables into a ROOT file, while
+ * the GeantImporter class is responsible for loading said data into memory.
  */
 struct GeantPhysicsTable
 {

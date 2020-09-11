@@ -6,16 +6,29 @@
 //! \file GeantImporter.test.cc
 //---------------------------------------------------------------------------//
 #include "io/GeantImporter.hh"
+#include "io/GeantTableType.hh"
+#include "io/GeantProcessType.hh"
+#include "io/GeantProcess.hh"
+#include "io/GeantModel.hh"
+#include "physics/base/ParticleMd.hh"
 
 #include "gtest/Main.hh"
 #include "gtest/Test.hh"
 
 using celeritas::GeantImporter;
+// Particles
 using celeritas::GeantParticle;
 using celeritas::ParticleDef;
 using celeritas::ParticleDefId;
 using celeritas::ParticleParams;
 using celeritas::PDGNumber;
+// Tables
+using celeritas::GeantModel;
+using celeritas::GeantPhysicsTable;
+using celeritas::GeantPhysicsVectorType;
+using celeritas::GeantProcess;
+using celeritas::GeantProcessType;
+using celeritas::GeantTableType;
 
 //---------------------------------------------------------------------------//
 // TEST HARNESS
@@ -70,4 +83,32 @@ TEST_F(GeantImporterTest, import_particles)
 
     EXPECT_VEC_EQ(expected_loaded_names, loaded_names);
     EXPECT_VEC_EQ(expected_loaded_pdgs, loaded_pdgs);
+}
+
+//---------------------------------------------------------------------------//
+TEST_F(GeantImporterTest, import_tables)
+{
+    GeantImporter import(root_filename_.c_str());
+    auto          data = import();
+
+    EXPECT_GE(data.physics_tables->size(), 0);
+
+    bool lambda_kn_gamma_table = false;
+
+    GeantPhysicsTable table_kn;
+
+    for (auto table : *data.physics_tables)
+    {
+        if (table.particle == PDGNumber{22}
+            && table.table_type == GeantTableType::Lambda
+            && table.process == GeantProcess::compt
+            && table.model == GeantModel::KleinNishina)
+        {
+            lambda_kn_gamma_table = true;
+            table_kn              = table;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(lambda_kn_gamma_table);
 }

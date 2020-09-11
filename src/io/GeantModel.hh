@@ -17,15 +17,15 @@ namespace celeritas
  * This enum does not exists in Geant4. It was created to safely access the
  * many physics tables imported from it.
  * Geant4 has model names hardcoded as strings. This class provides an
- * interface to select an enum from a string, while working as an enum:
+ * interface to select an enum from a string, while still working as an enum:
  *
  * \code
  *  GeantModel model("KleinNishina")
  *  if (model == GeantModel::KleinNishina) { ... }
  * \endcode
  *
- * Main reason for this wrapper is to retrieve Geant4 physics tables. Otherwise
- * it could have been a simple enum.
+ * Only reason for this wrapper is to retrieve Geant4 physics tables. Otherwise
+ * it would have been a simple enum.
  *
  * FOR REVIEW: The enum keeps the Geant4 names, not following Celeritas code
  * standards.

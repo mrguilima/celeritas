@@ -33,8 +33,8 @@ TEST_F(GeantTableTypeTest, full_test)
     table1("Lambda");
     EXPECT_EQ(table1, GeantTableType::Lambda);
 
-    GeantTableType table2("not_defined");
-    EXPECT_EQ(table2, GeantTableType::not_defined);
+    GeantTableType table2("DEDX");
+    EXPECT_EQ(table2, GeantTableType::DEDX);
 
     GeantTableType table3(GeantTableType::Lambda);
     EXPECT_EQ(table3, GeantTableType::Lambda);

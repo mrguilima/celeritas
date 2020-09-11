@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file GeantImporter.hh
+//! \brief Load particle data and physics tables from the app/geant-exporter
 //---------------------------------------------------------------------------//
 #pragma once
 
@@ -18,7 +19,7 @@
 #include "base/Types.hh"
 #include "base/Macros.hh"
 
-// ROOT forward declarations
+// ROOT
 class TFile;
 
 namespace celeritas
@@ -29,15 +30,16 @@ namespace celeritas
  * created by the app/geant-exporter external code.
  *
  * Usage:
- * 1. The constructor takes the /path/to/rootfile.root as a parameter and
- *    opens the root file
- * 2. Operator() loads particle and table data into a result_type struct
- *    that contains shared pointers to ParticleParams and GeantPhysicsTables
- *
  * \code
  *  GeantImporter import("/path/to/rootfile.root");
  *  auto geant_data = import();
  * \endcode
+ *
+ * Physics tables currently are a vector<GeantPhysicsTable>, since many
+ * parameters are at play when selecting a given table:
+ * GeantParticle, GeantTableType, GeantProcess, and GeantModel.
+ * See GeantImporter.test.cc for an example.
+ * This method will probably have to be improved.
  */
 class GeantImporter
 {

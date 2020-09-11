@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file GeantParticleLinkDef.h
-//! \brief Defines which classes should be added to the ROOT dictionary
+//! \brief Define the classes added to the ROOT dictionary
 //---------------------------------------------------------------------------//
 #ifdef __CINT__
 
@@ -16,8 +16,8 @@
 #pragma link C++ class celeritas::GeantProcess+;
 #pragma link C++ class celeritas::GeantTableType+;
 #pragma link C++ class celeritas::GeantTableType+;
-#pragma link C++ class celeritas::OpaqueId+;
 #pragma link C++ class celeritas::ParticleMd+;
+#pragma link C++ class celeritas::PDGNumber+;
 // clang-format on
 
 #endif
