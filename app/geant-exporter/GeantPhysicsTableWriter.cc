@@ -3,25 +3,22 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file GeantPhysicsTableParser.cc
+//! \file GeantPhysicsTableWriter.cc
 //---------------------------------------------------------------------------//
 
 // C++
 #include <fstream>
 
-// Root
+// ROOT
 #include <TFile.h>
-#include <TDirectory.h>
 #include <TTree.h>
 #include <TBranch.h>
 
 // Geant4
 #include <G4VProcess.hh>
-#include <G4ProcessManager.hh>
 #include <G4VEmProcess.hh>
 #include <G4VEnergyLossProcess.hh>
 #include <G4VMultipleScattering.hh>
-#include <G4eplusAnnihilation.hh>
 
 // Celeritas
 #include "io/GeantPhysicsTable.hh"
@@ -33,13 +30,13 @@
 #include "io/GeantPhysicsVectorType.hh"
 #include "io/GeantModel.hh"
 
-#include "GeantPhysicsTableParser.hh"
+#include "GeantPhysicsTableWriter.hh"
 
 //---------------------------------------------------------------------------//
 /*!
  * Construct with existing TFile reference
  */
-GeantPhysicsTableParser::GeantPhysicsTableParser(TFile* root_file)
+GeantPhysicsTableWriter::GeantPhysicsTableWriter(TFile* root_file)
 {
     REQUIRE(root_file);
     this->tree_tables_ = std::make_unique<TTree>("tables", "tables");
@@ -50,13 +47,11 @@ GeantPhysicsTableParser::GeantPhysicsTableParser(TFile* root_file)
 /*!
  * Add a new physics table as a new TTree by providing process and particle
  */
-void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
+void GeantPhysicsTableWriter::add_physics_table(G4VProcess*           process,
                                                 G4ParticleDefinition* particle)
 {
     // Particle name
     std::string particle_name = particle->GetParticleName();
-    replace_characters(particle_name, "+", "Plus");
-    replace_characters(particle_name, "-", "Minus");
 
     // Process type
     G4ProcessType process_type    = process->GetProcessType();
@@ -71,6 +66,8 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
     this->table_.process      = process_enum;
     this->table_.particle     = PDGNumber(particle->GetPDGEncoding());
 
+    // Doing if (auto em_process = dynamic_cast...) behaved oddly...
+    // ... not sure why yet. Will revisit.
     auto em_process          = dynamic_cast<G4VEmProcess*>(process);
     auto energy_loss         = dynamic_cast<G4VEnergyLossProcess*>(process);
     auto multiple_scattering = dynamic_cast<G4VMultipleScattering*>(process);
@@ -90,7 +87,7 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
             // Write table_
             this->table_.model = model;
 
-            // A same model can have both Lambda and LambdaPrim tables
+            // The same model can have both Lambda and LambdaPrim tables
             if (em_process->LambdaTable())
             {
                 table = em_process->LambdaTable();
@@ -99,11 +96,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (em_process->LambdaTablePrim())
@@ -114,17 +114,20 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (table == nullptr)
             {
-                std::cout << "No available table in "
-                             "GeantPhysicsTableParser::addPhysicsTableTree "
+                std::cout << "  No available table in "
+                             "GeantPhysicsTableWriter::add_physics_table "
                              "for G4VEmProcess "
                           << process_name << "." << particle_name << std::endl;
             }
@@ -154,11 +157,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->DEDXTableForSubsec())
@@ -169,11 +175,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->DEDXunRestrictedTable())
@@ -184,11 +193,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->IonisationTable())
@@ -199,11 +211,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->IonisationTableForSubsec())
@@ -214,11 +229,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->CSDARangeTable())
@@ -229,11 +247,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->SecondaryRangeTable())
@@ -244,11 +265,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->RangeTableForLoss())
@@ -259,11 +283,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->InverseRangeTable())
@@ -274,11 +301,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->LambdaTable())
@@ -289,11 +319,14 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (energy_loss->SubLambdaTable())
@@ -304,17 +337,20 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                 GeantTableType table_type(table_type_name);
                 this->table_.table_type = table_type;
 
-                std::string tree_name = table_type_name + "_" + process_name
-                                        + "_" + model_name + "_"
-                                        + particle_name;
+                std::string table_name = table_type_name + "_" + process_name
+                                         + "_" + model_name + "_"
+                                         + particle_name;
+                std::cout << "  Added " << table_name << std::endl;
 
-                write_tree(tree_name, table);
+                fill_physics_vectors(table);
+
+                this->tree_tables_->Fill();
             }
 
             if (table == nullptr)
             {
-                std::cout << "No available table in "
-                             "GeantPhysicsTableParser::addPhysicsTableTree "
+                std::cout << "  No available table in "
+                             "GeantPhysicsTableWriter::add_physics_table "
                              "for G4VEnergyLossProcess "
                           << process_name << "." << particle_name << std::endl;
             }
@@ -325,7 +361,8 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
     // G4VMultipleScattering tables
     else if (multiple_scattering)
     {
-        // TODO: Figure out a call to get the number of models. Max is 4.
+        // TODO: Figure out a method to get the number of models. Max is 4.
+        // Other classes have a NumberOfModels(), except multiple_scattering
         for (ssize_t i = 0; i < 4; i++)
         {
             G4VEmModel* model = multiple_scattering->GetModelByIndex(i);
@@ -342,11 +379,13 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
                     GeantTableType table_type(table_type_name);
                     this->table_.table_type = table_type;
 
-                    std::string tree_name = table_type_name + "_"
-                                            + process_name + "_" + model_name
-                                            + "_" + particle_name;
+                    std::string table_name = table_type_name + "_"
+                                             + process_name + "_" + model_name
+                                             + "_" + particle_name;
 
-                    write_tree(tree_name, table);
+                    fill_physics_vectors(table);
+
+                    this->tree_tables_->Fill();
                 }
             }
         }
@@ -355,27 +394,25 @@ void GeantPhysicsTableParser::add_physics_table(G4VProcess*           process,
     //-----------------------------------------------------------------------//
     else
     {
-        std::cout << "No available code for " << particle_name << "."
+        std::cout << "  No available code for " << particle_name << "."
                   << process_name << std::endl;
     }
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Write a given physics table as a tree to this->root_file_
+ * Write a given physics table to this->root_file_
  */
-void GeantPhysicsTableParser::write_tree(std::string     tree_name,
-                                         G4PhysicsTable* table)
+void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable* table)
 {
-    // Replace special characters
-    replace_characters(tree_name, ".", "_");
-    replace_characters(tree_name, "-", "_");
-
+    // Clean up so previous vector data is not carried forward
     this->table_.physics_vectors.clear();
 
-    // G4PhysicsTable is a std::vector<G4PhysicsVector>
+    // Loop over G4PhysicsTable
     for (auto phys_vector : *table)
     {
+        // GeantPhysicsTable has a std::vector<GeantPhysicsVector>
+        // Populate a GeantPhysicsVector and push it back to this->table_
         GeantPhysicsVector geant_physics_vector;
 
         geant_physics_vector.vector_type
@@ -386,28 +423,6 @@ void GeantPhysicsTableParser::write_tree(std::string     tree_name,
             geant_physics_vector.energy.push_back(phys_vector->Energy(j));
             geant_physics_vector.xs_eloss.push_back((*phys_vector)[j]);
         }
-
         this->table_.physics_vectors.push_back(geant_physics_vector);
-    }
-
-    this->tree_tables_->Fill();
-
-    std::cout << "  Added " << tree_name << std::endl;
-}
-
-//---------------------------------------------------------------------------//
-/*!
- * Replace characters in a string
- */
-void GeantPhysicsTableParser::replace_characters(std::string&      string,
-                                                 std::string const search,
-                                                 std::string const replace)
-{
-    size_t position = 0;
-
-    while ((position = string.find(search, position)) != std::string::npos)
-    {
-        string.replace(position, search.length(), replace);
-        position += replace.length();
     }
 }

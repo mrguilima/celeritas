@@ -95,17 +95,14 @@ TEST_F(GeantImporterTest, import_tables)
 
     bool lambda_kn_gamma_table = false;
 
-    GeantPhysicsTable table_kn;
-
     for (auto table : *data.physics_tables)
     {
-        if (table.particle == PDGNumber{22}
+        if (table.particle == PDGNumber{celeritas::pdg::gamma()}
             && table.table_type == GeantTableType::Lambda
             && table.process == GeantProcess::compt
             && table.model == GeantModel::KleinNishina)
         {
             lambda_kn_gamma_table = true;
-            table_kn              = table;
             break;
         }
     }

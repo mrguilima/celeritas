@@ -25,7 +25,7 @@
 
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
-#include "GeantPhysicsTableParser.hh"
+#include "GeantPhysicsTableWriter.hh"
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
 
@@ -97,8 +97,8 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
     REQUIRE(root_file);
     REQUIRE(particle_table);
 
-    // Start parser
-    GeantPhysicsTableParser table_parser(root_file);
+    // Start table writer
+    GeantPhysicsTableWriter table_writer(root_file);
 
     cout << "Exporting physics tables..." << endl;
 
@@ -124,7 +124,7 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
         for (std::size_t j = 0; j < process_list->size(); j++)
         {
             G4VProcess* process = (*process_list)[j];
-            table_parser.add_physics_table(process, g4_particle_def);
+            table_writer.add_physics_table(process, g4_particle_def);
         }
     }
 
@@ -188,6 +188,6 @@ int main(int argc, char* argv[])
 
     root_output.Close();
 
-    cout << " done!" << endl;
+    cout << root_output_filename << " done!" << endl;
     return EXIT_SUCCESS;
 }
