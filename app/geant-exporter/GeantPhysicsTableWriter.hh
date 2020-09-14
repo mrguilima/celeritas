@@ -22,6 +22,9 @@ class TTree;
 
 // Geant
 class G4VProcess;
+class G4VEmProcess;
+class G4VEnergyLossProcess;
+class G4VMultipleScattering;
 class G4ParticleDefinition;
 class G4PhysicsTable;
 
@@ -38,22 +41,30 @@ using namespace celeritas;
 class GeantPhysicsTableWriter
 {
   public:
-    // Constructor creates a new "tables" TTree to the existing ROOT TFile
+    // Constructor adds a new "tables" TTree to the existing ROOT TFile
     GeantPhysicsTableWriter(TFile* root_file);
     // Default destructor
     ~GeantPhysicsTableWriter() = default;
 
-    // Write physics table of a given particle and physics process
+    // Write the physics tables from a given particle and physics process
     // Expected to be called within a G4ParticleTable iterator loop
-    void add_physics_table(G4VProcess* process, G4ParticleDefinition* particle);
+    void
+    add_physics_tables(G4VProcess* process, G4ParticleDefinition* particle);
 
   protected:
-    // Write a given table as a new entry in the tables TBranch
+    // Loop over EM processes and write tables to the ROOT file
+    void fill_em_tables(G4VEmProcess* em_process);
+    // Loop over energy loss processes and write tables to the ROOT file
+    void fill_energy_loss_tables(G4VEnergyLossProcess* eloss_process);
+    // Loop over multiple scattering processes and write tables to the ROOT
+    // file
+    void fill_multiple_scattering_tables(G4VMultipleScattering* msc_process);
+    // Write the physics vectors from a given G4PhysicsTable to this->table_
     void fill_physics_vectors(G4PhysicsTable* table);
 
   protected:
     // TTree created by the constructor
     std::unique_ptr<TTree> tree_tables_;
-    // Object written in the TTree. Each table is a new TTree entry
-    GeantPhysicsTable      table_;
+    // Object written in the TTree. Each GeantPhysicsTable is a new TTree entry
+    GeantPhysicsTable table_;
 };

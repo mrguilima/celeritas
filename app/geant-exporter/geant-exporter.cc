@@ -124,10 +124,9 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
         for (std::size_t j = 0; j < process_list->size(); j++)
         {
             G4VProcess* process = (*process_list)[j];
-            table_writer.add_physics_table(process, g4_particle_def);
+            table_writer.add_physics_tables(process, g4_particle_def);
         }
     }
-
     root_file->Write();
 }
 
