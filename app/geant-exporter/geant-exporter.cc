@@ -18,6 +18,8 @@
 #include <G4GenericPhysicsList.hh>
 #include <G4ParticleTable.hh>
 #include <G4SystemOfUnits.hh>
+#include <G4Material.hh>
+#include <G4MaterialTable.hh>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -28,7 +30,9 @@
 #include "GeantPhysicsTableWriter.hh"
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
+#include "io/GeantMaterialTable.hh"
 
+using celeritas::GeantMaterialTable;
 using celeritas::GeantParticle;
 using namespace geant_exporter;
 using std::cout;
@@ -82,6 +86,7 @@ void store_particles(TFile* root_file, G4ParticleTable* particle_table)
 
         cout << "  Added " << g4_particle_def->GetParticleName() << endl;
     }
+    cout << endl;
 
     root_file->Write();
 }
@@ -127,6 +132,47 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
             table_writer.add_physics_tables(process, g4_particle_def);
         }
     }
+    cout << endl;
+
+    root_file->Write();
+}
+
+//---------------------------------------------------------------------------//
+/*!
+ * Write material table data to ROOT.
+ *
+ * The ROOT file must be open before this call.
+ *
+ * TEMP NOTES:
+ * - ProductionCutsTable has a size that matches the physics tables
+ * - MaterialTable does not match
+ *   - For cms, physics table size = 444 and material table size = 385
+ * - Do we need energy cuts?
+ */
+void store_material_tables(TFile*                 root_file,
+                           G4ProductionCutsTable* production_cuts)
+{
+    REQUIRE(root_file);
+    REQUIRE(production_cuts);
+
+    cout << "Exporting material tables..." << endl;
+
+    TTree tree_materials("materials", "materials");
+
+    // Create temporary material table
+    GeantMaterialTable geant_material_table;
+    tree_materials.Branch("GeantMaterialTable", &geant_material_table);
+
+    for (ssize_t i = 0; i < production_cuts->GetTableSize(); i++)
+    {
+        auto material_cuts         = production_cuts->GetMaterialCutsCouple(i);
+        geant_material_table.name  = material_cuts->GetMaterial()->GetName();
+        geant_material_table.index = material_cuts->GetIndex(); // same as i
+        tree_materials.Fill();
+        cout << "  Added " << geant_material_table.name << endl;
+    }
+    cout << endl;
+
     root_file->Write();
 }
 
@@ -149,6 +195,9 @@ int main(int argc, char* argv[])
     // >>> Initialize Geant4
 
     G4RunManager run_manager;
+
+    // TEMPORARY FLAG. Better remove or set verbosity to 0 in the future...
+    run_manager.SetVerboseLevel(2);
 
     // Initialize the geometry
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
@@ -175,6 +224,14 @@ int main(int argc, char* argv[])
 
     // >>> Export data
 
+    //---------------- TEMP [TESTING PURPOSES]
+    //! Dump physics tables
+    // G4UImanager::GetUIpointer()->ApplyCommand(
+    //    "/run/particle/storePhysicsTable tables");
+    // G4UImanager::GetUIpointer()->ApplyCommand(
+    //    "/run/particle/setStoredInAscii 1");
+    //----------------
+
     // Create the ROOT output file
     cout << "Creating " << root_output_filename << "..." << endl;
     TFile root_output(root_output_filename.c_str(), "recreate");
@@ -184,6 +241,10 @@ int main(int argc, char* argv[])
 
     // Store physics tables
     store_physics_tables(&root_output, G4ParticleTable::GetParticleTable());
+
+    // Store material tables
+    store_material_tables(&root_output,
+                          G4ProductionCutsTable::GetProductionCutsTable());
 
     root_output.Close();
 

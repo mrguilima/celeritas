@@ -48,6 +48,8 @@ class GeantImporter
     {
         std::shared_ptr<ParticleParams> particle_params;
         std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
+        // TODO:
+        // std::shared_ptr<std::vector<GeantMaterialTable> material_tables;
     };
 
   public:
@@ -65,6 +67,8 @@ class GeantImporter
     std::shared_ptr<ParticleParams> load_particle_data();
     // Populate a vector of GeantPhysicsTable objects
     std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
+    // TODO
+    // std::shared_ptr<std::vector<GeantMaterialTable>> load_material_table_data();
 
   public:
     std::unique_ptr<TFile> root_input_;

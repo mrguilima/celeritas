@@ -130,6 +130,7 @@ if(CELERITAS_USE_ROOT)
     io/GeantProcess.hh
     io/GeantModel.hh
     io/GeantTableType.hh
+    io/GeantMaterialTable.hh
     physics/base/ParticleMd.hh
     base/OpaqueId.hh
     LINKDEF io/GeantParticleLinkDef.h

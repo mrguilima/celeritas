@@ -121,7 +121,6 @@ GeantImporter::load_physics_table_data()
 
     std::vector<GeantPhysicsTable> tables;
     CHECK(tree_tables->GetEntries());
-    tables.resize(tree_tables->GetEntries());
 
     // Load branch
     GeantPhysicsTable  a_table;
