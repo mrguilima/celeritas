@@ -97,6 +97,8 @@ TEST_F(GeantImporterTest, import_tables)
 
     for (auto table : *data.physics_tables)
     {
+        EXPECT_GE(table.physics_vectors.size(), 0);
+
         if (table.particle == PDGNumber{celeritas::pdg::gamma()}
             && table.table_type == GeantTableType::Lambda
             && table.process == GeantProcess::compt

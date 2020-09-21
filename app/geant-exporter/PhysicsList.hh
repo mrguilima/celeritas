@@ -3,21 +3,28 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file ActionInitialization.cc
+//! \file PhysicsList.hh
+//! \brief Construct a user-defined list of particles and physics processes
 //---------------------------------------------------------------------------//
-#include "ActionInitialization.hh"
-#include "PrimaryGeneratorAction.hh"
+#pragma once
+
+#include <G4VUserPhysicsList.hh>
 
 namespace geant_exporter
 {
 //---------------------------------------------------------------------------//
 /*!
- * Construct and invoke all other Geant4 classes.
+ * Construct a user-defined physics list
  */
-void ActionInitialization::Build() const
+class PhysicsList : public G4VUserPhysicsList
 {
-    this->SetUserAction(new PrimaryGeneratorAction());
-}
+  public:
+    PhysicsList();
+    ~PhysicsList();
+
+    void ConstructParticle() override;
+    void ConstructProcess() override;
+};
 
 //---------------------------------------------------------------------------//
 } // namespace geant_exporter

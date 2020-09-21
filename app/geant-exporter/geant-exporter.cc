@@ -25,8 +25,9 @@
 #include <TTree.h>
 #include <TBranch.h>
 
-#include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
+#include "DetectorConstruction.hh"
+#include "PhysicsList.hh"
 #include "GeantPhysicsTableWriter.hh"
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
@@ -144,10 +145,10 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
  * The ROOT file must be open before this call.
  *
  * TEMP NOTES:
- * - ProductionCutsTable has a size that matches the physics tables
- * - MaterialTable does not match
+ * - ProductionCutsTable size matches the physics tables sizes
+ * - MaterialTable size does not
  *   - For cms, physics table size = 444 and material table size = 385
- * - Do we need energy cuts?
+ * - Do we need any cuts?
  */
 void store_material_tables(TFile*                 root_file,
                            G4ProductionCutsTable* production_cuts)
@@ -197,20 +198,24 @@ int main(int argc, char* argv[])
     G4RunManager run_manager;
 
     // TEMPORARY FLAG. Better remove or set verbosity to 0 in the future...
-    run_manager.SetVerboseLevel(2);
+    // run_manager.SetVerboseLevel(2);
 
     // Initialize the geometry
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
     run_manager.SetUserInitialization(detector.release());
 
     // Load the physics list
-    auto physics_constructor = std::make_unique<std::vector<G4String>>();
-    physics_constructor->push_back("G4EmStandardPhysics");
 
-    auto physics_list = std::make_unique<G4GenericPhysicsList>(
-        physics_constructor.release());
+    // User-defined physics list
+    auto physics_list = std::make_unique<PhysicsList>();
 
-    // For the full Physics List:
+    // EM Standard Physics
+    // auto physics_constructor = std::make_unique<std::vector<G4String>>();
+    // physics_constructor->push_back("G4EmStandardPhysics");
+    // auto physics_list = std::make_unique<G4GenericPhysicsList>(
+    //    physics_constructor.release());
+
+    // Full Physics
     // auto physics_list = std::make_unique<FTFP_BERT>();
 
     run_manager.SetUserInitialization(physics_list.release());
