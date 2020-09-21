@@ -20,7 +20,12 @@ namespace geant_exporter
 /*!
  * Constructor and default destructor
  */
-PhysicsList::PhysicsList() : G4VUserPhysicsList() {}
+PhysicsList::PhysicsList() : G4VUserPhysicsList()
+{
+    // Manually select the physics table binning
+    // G4EmParameters* em_parameters = G4EmParameters::Instance();
+    // em_parameters->SetNumberOfBins(10);
+}
 
 PhysicsList::~PhysicsList() = default;
 
