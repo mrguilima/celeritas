@@ -3,11 +3,12 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file Primary.hh
+//! \file TrackInitializer.hh
 //---------------------------------------------------------------------------//
 #pragma once
 
 #include "Types.hh"
+#include "physics/base/Primary.hh"
 // XXX Consider moving initializer_t to a traits class for each "state" thing
 #include "physics/base/ParticleTrackView.hh"
 #include "geometry/GeoTrackView.hh"
@@ -26,17 +27,27 @@ struct SimTrackView
 
 //---------------------------------------------------------------------------//
 /*!
- * Starting "source" particle. One or more of these are emitted by an Event.
+ * Lightweight version of a track used to initialize new tracks from primaries
+ * or secondaries
  */
-struct Primary
+struct TrackInitializer
 {
     // Simulation state
     SimTrackView::Initializer_t      sim;
     GeoTrackView::Initializer_t      geo;
     ParticleTrackView::Initializer_t particle;
+
+    // Initialize from a primary particle
+    __device__ TrackInitializer& operator=(const Primary& primary)
+    {
+        particle.def_id = primary.def_id;
+        particle.energy = primary.energy;
+        geo.dir         = primary.direction;
+        geo.pos         = primary.position;
+        sim.event_id    = primary.event_id;
+        return *this;
+    }
 };
 
 //---------------------------------------------------------------------------//
 } // namespace celeritas
-
-//---------------------------------------------------------------------------//

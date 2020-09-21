@@ -189,5 +189,9 @@ endif()
 
 celeritas_setup_tests(SERIAL PREFIX sim)
 celeritas_add_test(sim/AccumPathLength.test.cc)
+if(CELERITAS_USE_CUDA AND CELERITAS_USE_VecGeom)
+  celeritas_add_test(sim/InitializeTracks.test.cu)
+  target_link_libraries(sim_InitializeTracks VecGeom::vecgeom)
+endif()
 
 #-----------------------------------------------------------------------------#
