@@ -3,26 +3,35 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file GeantPhysicsVector.hh
-//! \brief Store Geant4 physics vector data
+//! \file GeantMaterial.hh
+//! \brief Store material information
 //---------------------------------------------------------------------------//
 #pragma once
 
-#include "GeantPhysicsVectorType.hh"
+#include <string>
+#include <vector>
+
 #include "base/Types.hh"
 
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store Geant4 physics vector data [see Geant4's G4PhysicsVector.hh].
+ * Store data for each individual element and material
  */
-struct GeantPhysicsVector
+struct GeantElement
 {
-    GeantPhysicsVectorType vector_type;
-    bool                   is_eloss; // Check if it is a xs or eloss dataVector
-    std::vector<real_type> energy;   // [MeV] Geant4 binVector
-    std::vector<real_type> xs_eloss; // [barn or MeV] Geant4 dataVector
+    std::string name;
+    real_type   fraction;
+    int         z;
+    real_type   atomic_mass;
+};
+
+struct GeantMaterial
+{
+    std::string               name;
+    real_type                 density; // [g/cm^3]
+    std::vector<GeantElement> elements;
 };
 
 //---------------------------------------------------------------------------//

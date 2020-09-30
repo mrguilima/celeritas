@@ -151,10 +151,10 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
  * - Do we need any cuts?
  */
 void store_material_tables(TFile*                 root_file,
-                           G4ProductionCutsTable* production_cuts)
+                           G4ProductionCutsTable* g4production_cuts)
 {
     REQUIRE(root_file);
-    REQUIRE(production_cuts);
+    REQUIRE(g4production_cuts);
 
     cout << "Exporting material tables..." << endl;
 
@@ -164,13 +164,33 @@ void store_material_tables(TFile*                 root_file,
     GeantMaterialTable geant_material_table;
     tree_materials.Branch("GeantMaterialTable", &geant_material_table);
 
-    for (ssize_t i = 0; i < production_cuts->GetTableSize(); i++)
+    // Loop over materials and elements
+    for (size_type i = 0; i < g4production_cuts->GetTableSize(); i++)
     {
-        auto material_cuts         = production_cuts->GetMaterialCutsCouple(i);
-        geant_material_table.name  = material_cuts->GetMaterial()->GetName();
-        geant_material_table.index = material_cuts->GetIndex(); // same as i
+        GeantMaterial material;
+        auto g4material_cuts = g4production_cuts->GetMaterialCutsCouple(i);
+        auto g4material      = g4material_cuts->GetMaterial();
+
+        material.name    = g4material->GetName();
+        material.density = g4material->GetDensity() / (g / cm3);
+
+        auto g4elements = g4material->GetElementVector();
+
+        for (size_type j = 0; j < g4elements->size(); j++)
+        {
+            GeantElement element;
+            element.name        = g4elements->at(j)->GetName();
+            element.fraction    = g4material->GetFractionVector()[j];
+            element.z           = g4elements->at(j)->GetZ();
+            element.atomic_mass = g4elements->at(j)->GetAtomicMassAmu();
+
+            material.elements.push_back(element);
+        }
+
+        geant_material_table.add(g4material_cuts->GetIndex(), material);
+
         tree_materials.Fill();
-        cout << "  Added " << geant_material_table.name << endl;
+        cout << "  Added " << material.name << endl;
     }
     cout << endl;
 
@@ -207,13 +227,13 @@ int main(int argc, char* argv[])
     // Load the physics list
 
     // User-defined physics list
-    auto physics_list = std::make_unique<PhysicsList>();
+    // auto physics_list = std::make_unique<PhysicsList>();
 
     // EM Standard Physics
-    // auto physics_constructor = std::make_unique<std::vector<G4String>>();
-    // physics_constructor->push_back("G4EmStandardPhysics");
-    // auto physics_list = std::make_unique<G4GenericPhysicsList>(
-    //    physics_constructor.release());
+    auto physics_constructor = std::make_unique<std::vector<G4String>>();
+    physics_constructor->push_back("G4EmStandardPhysics");
+    auto physics_list = std::make_unique<G4GenericPhysicsList>(
+        physics_constructor.release());
 
     // Full Physics
     // auto physics_list = std::make_unique<FTFP_BERT>();

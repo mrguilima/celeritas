@@ -21,7 +21,7 @@ namespace celeritas
  *
  * \code
  *  GeantProcess my_process("msc")
- *  if (my_process == GeantProcess::msc) { ... }
+ *  if (my_process.get() == GeantProcess::msc) { ... }
  * \endcode
  *
  * Only reason for this wrapper is to retrieve Geant4 physics tables. Otherwise

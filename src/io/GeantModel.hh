@@ -21,7 +21,7 @@ namespace celeritas
  *
  * \code
  *  GeantModel model("KleinNishina")
- *  if (model == GeantModel::KleinNishina) { ... }
+ *  if (model.get() == GeantModel::KleinNishina) { ... }
  * \endcode
  *
  * Only reason for this wrapper is to retrieve Geant4 physics tables. Otherwise

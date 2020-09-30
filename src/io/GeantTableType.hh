@@ -21,7 +21,7 @@ namespace celeritas
  *
  * \code
  *  GeantTableType table("Lambda")
- *  if (table == GeantTableType::Lambda) { ... }
+ *  if (table.get() == GeantTableType::Lambda) { ... }
  * \endcode
  *
  * Only reason for this wrapper is to retrieve Geant4 physics tables. Otherwise

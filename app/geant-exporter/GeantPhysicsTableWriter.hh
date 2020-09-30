@@ -60,9 +60,11 @@ class GeantPhysicsTableWriter
     // file
     void fill_multiple_scattering_tables(G4VMultipleScattering* msc_process);
     // Write the physics vectors from a given G4PhysicsTable to this->table_
-    void fill_physics_vectors(G4PhysicsTable* table);
+    void fill_physics_vectors(G4PhysicsTable* table, bool is_eloss);
     // Write the remaining elements of this->table_ and fill the tables TTree
-    void fill_tables_tree(G4PhysicsTable* table, std::string table_type_name);
+    void fill_tables_tree(G4PhysicsTable* table,
+                          std::string     table_type_name,
+                          bool            is_eloss);
 
   protected:
     // TTree created by the constructor

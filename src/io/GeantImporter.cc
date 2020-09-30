@@ -128,7 +128,7 @@ GeantImporter::load_physics_table_data()
     tree_tables->SetBranchAddress("GeantPhysicsTable", &temp_table_ptr);
 
     // Populate physics table vector
-    for (ssize_t i : range(tree_tables->GetEntries()))
+    for (size_type i : range(tree_tables->GetEntries()))
     {
         tree_tables->GetEntry(i);
         tables.push_back(a_table);
