@@ -11,9 +11,12 @@
 #include "io/GeantProcess.hh"
 #include "io/GeantModel.hh"
 #include "physics/base/ParticleMd.hh"
+#include "base/Types.hh"
 
 #include "gtest/Main.hh"
 #include "gtest/Test.hh"
+
+using celeritas::real_type;
 
 using celeritas::GeantImporter;
 // Particles
@@ -127,8 +130,33 @@ TEST_F(GeantImporterTest, import_materials)
     EXPECT_GT(matid_list.size(), 0);
     EXPECT_GT(volid_list.size(), 0);
 
-    GeantMaterialTable::mat_id matid    = 0;
+    // Fetch a given GeantVolume provided a vol_id
+    GeantMaterialTable::vol_id volid  = 10;
+    GeantVolume                volume = data.materials->get_volume(volid);
+    EXPECT_EQ(volume.name, "TrackerPatchPannel");
+
+    // Fetch respective mat_id and GeantMaterial from the given vol_id
+    GeantMaterialTable::mat_id matid    = data.materials->get_matid(volid);
     GeantMaterial              material = data.materials->get_material(matid);
 
+    // Material
+    EXPECT_EQ(matid, 31);
     EXPECT_EQ(material.name, "Air");
+    EXPECT_SOFT_EQ(material.density, 0.00121399936124299);
+    EXPECT_EQ(material.elements.size(), 4);
+
+    // Elements within material
+    std::string elements_name[4] = {"N", "O", "Ar", "H"};
+    real_type   fraction[4]      = {0.7494, 0.2369, 0.0129, 0.0008};
+    int         z_number[4]      = {7, 8, 18, 1};
+    real_type   atomic_mass[4]
+        = {14.00676896, 15.999390411, 39.94769335110001, 1.007940752665138};
+
+    for (int i = 0; i < 4; i++)
+    {
+        EXPECT_EQ(material.elements.at(i).name, elements_name[i]);
+        EXPECT_SOFT_EQ(material.elements.at(i).fraction, fraction[i]);
+        EXPECT_EQ(material.elements.at(i).z, z_number[i]);
+        EXPECT_SOFT_EQ(material.elements.at(i).atomic_mass, atomic_mass[i]);
+    }
 }

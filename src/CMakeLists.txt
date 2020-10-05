@@ -123,7 +123,7 @@ endforeach()
 if(CELERITAS_USE_ROOT)
   include(${ROOT_USE_FILE})
 
-  root_generate_dictionary(CeleritasRootGeantParticle
+  root_generate_dictionary(CeleritasRootGeantInterface
     io/GeantParticle.hh
     io/GeantPhysicsTable.hh
     io/GeantPhysicsVector.hh
@@ -144,7 +144,7 @@ if(CELERITAS_USE_ROOT)
   add_library(CeleritasIO SHARED
     io/GeantImporter.cc
     io/GeantMaterialTable.cc
-    CeleritasRootGeantParticle.cxx
+    CeleritasRootGeantInterface.cxx
   )
   add_library(Celeritas::IO ALIAS CeleritasIO)
   target_link_libraries(CeleritasIO

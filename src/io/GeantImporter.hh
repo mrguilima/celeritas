@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file GeantImporter.hh
-//! \brief Load particle data and physics tables from the app/geant-exporter
+//! \brief Import all the data exported by the app/geant-exporter
 //---------------------------------------------------------------------------//
 #pragma once
 
@@ -41,6 +41,8 @@ namespace celeritas
  * GeantParticle, GeantTableType, GeantProcess, and GeantModel.
  * See GeantImporter.test.cc for an example on how to fetch a given table.
  * This method will probably have to be improved.
+ *
+ * Material and volume information is stored in a GeantMaterialTable object.
  */
 class GeantImporter
 {

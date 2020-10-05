@@ -4,12 +4,13 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file geant-exporter.cc
-//! \brief Geant4 particle definition and physics tables exporter app
+//! \brief Geant4 particle, XS tables, material, and volume data exporter app
 //---------------------------------------------------------------------------//
 #include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
+#include <limits>
 
 #include <G4RunManager.hh>
 #include <G4UImanager.hh>
@@ -177,12 +178,6 @@ void loop_volumes(GeantMaterialTable& material_table,
  * Write material table data to ROOT.
  *
  * The ROOT file must be open before this call.
- *
- * TEMP NOTES:
- * - ProductionCutsTable size matches the physics tables sizes
- * - MaterialTable size does not
- *   - For cms, physics table size = 444 and material table size = 385
- * - Do we need any cuts?
  */
 void store_material_table(TFile*                             root_file,
                           G4ProductionCutsTable*             g4production_cuts,
@@ -305,5 +300,6 @@ int main(int argc, char* argv[])
     root_output.Close();
 
     cout << root_output_filename << " done!" << endl;
+
     return EXIT_SUCCESS;
 }

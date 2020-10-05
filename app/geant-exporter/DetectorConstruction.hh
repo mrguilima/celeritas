@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
 //! \file DetectorConstruction.hh
+//! \brief Construct detector geometry from a given gdml input
 //---------------------------------------------------------------------------//
 #pragma once
 

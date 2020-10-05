@@ -18,7 +18,9 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store data of a given material and its elements. Used by GeantMaterialTable.
+ * Store data of a given material and its elements.
+ *
+ * Used by the GeantMaterialTable class.
  */
 struct GeantMaterial
 {

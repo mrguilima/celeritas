@@ -16,11 +16,13 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store data for each volume. Struct used by the GeantMaterialTable class.
+ * Store data for each volume.
  *
- * The reason to create a separate struct instead of just populate a map with
- * the volume name and id directly into GeantMaterialTable is to easily
- * expand volume information if needed.
+ * Used by the GeantMaterialTable class.
+ *
+ * The reason for this (currently absurdly simple) struct instead of just
+ * keeping tab of volume names directly in the GeantMaterialTable, is to
+ * easily import further volume information in the future.
  */
 struct GeantVolume
 {

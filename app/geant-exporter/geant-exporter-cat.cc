@@ -76,12 +76,13 @@ Name              | PDG Code    | Mass [MeV] | Charge [e] | Decay [1/s]
         // clang-format on
     }
 
-    // Print material list
+    // Print volume / material list
     std::vector<GeantMaterialTable::vol_id> volids = materials->vol_id_list();
 
     cout << endl;
     cout << "Loaded " << volids.size() << " volumes from `" << argv[1]
          << "`.\n";
+
     cout << R"gfm(
 Volume ID | Material ID | Volume Name                          | Material Name
 --------- | ----------- | ------------------------------------ | ---------------------------
