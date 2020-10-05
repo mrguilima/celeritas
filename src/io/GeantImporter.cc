@@ -45,9 +45,11 @@ GeantImporter::result_type GeantImporter::operator()()
     result_type geant_data;
     geant_data.particle_params = this->load_particle_data();
     geant_data.physics_tables  = this->load_physics_table_data();
+    geant_data.materials       = this->load_material_data();
 
     ENSURE(geant_data.particle_params);
     ENSURE(geant_data.physics_tables);
+    ENSURE(geant_data.materials);
 
     return geant_data;
 }
@@ -115,17 +117,17 @@ std::shared_ptr<ParticleParams> GeantImporter::load_particle_data()
 std::shared_ptr<std::vector<GeantPhysicsTable>>
 GeantImporter::load_physics_table_data()
 {
-    // Open the 'tables' branch and reserve size for the converted data
+    // Open tables branch
     std::unique_ptr<TTree> tree_tables(root_input_->Get<TTree>("tables"));
     CHECK(tree_tables);
-
-    std::vector<GeantPhysicsTable> tables;
     CHECK(tree_tables->GetEntries());
 
     // Load branch
     GeantPhysicsTable  a_table;
     GeantPhysicsTable* temp_table_ptr = &a_table;
     tree_tables->SetBranchAddress("GeantPhysicsTable", &temp_table_ptr);
+
+    std::vector<GeantPhysicsTable> tables;
 
     // Populate physics table vector
     for (size_type i : range(tree_tables->GetEntries()))
@@ -135,6 +137,26 @@ GeantImporter::load_physics_table_data()
     }
 
     return std::make_shared<std::vector<GeantPhysicsTable>>(std::move(tables));
+}
+//---------------------------------------------------------------------------//
+/*!
+ * Load GeantMaterialTable info
+ */
+std::shared_ptr<GeantMaterialTable> GeantImporter::load_material_data()
+{
+    // Open materials branch
+    std::unique_ptr<TTree> tree_materials(
+        root_input_->Get<TTree>("materials"));
+    CHECK(tree_materials);
+    CHECK(tree_materials->GetEntries()); // Must be 1
+
+    // Load branch and material data
+    GeantMaterialTable  materials;
+    GeantMaterialTable* temp_materials_ptr = &materials;
+    tree_materials->SetBranchAddress("GeantMaterialTable", &temp_materials_ptr);
+    tree_materials->GetEntry(0);
+
+    return std::make_shared<GeantMaterialTable>(std::move(materials));
 }
 
 //---------------------------------------------------------------------------//

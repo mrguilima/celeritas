@@ -12,50 +12,60 @@
 #include <map>
 
 #include "GeantMaterial.hh"
+#include "GeantVolume.hh"
 
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store material information. The material index is the position of said
- * material in the vector<GeantPhysicsVector> in the GeantPhysicsTable
+ * Store material and volume information. The material id represents the
+ * position of said material in the vector<GeantPhysicsVector> of the
+ * GeantPhysicsTable. The volume id links a geometry volume with its respective
+ * material id for lookup.
  */
 class GeantMaterialTable
 {
   public:
     //@{
     //!
+    // Should these be opaqueids?
     using mat_id = int;
+    using vol_id = int;
     //@}
 
     GeantMaterialTable()  = default;
     ~GeantMaterialTable() = default;
 
-    void add(mat_id index, GeantMaterial material)
-    {
-        index_to_material_.insert(
-            std::pair<mat_id, GeantMaterial>(index, material));
-        name_to_index_.insert(
-            std::pair<std::string, mat_id>(material.name, index));
-    }
+    // >>> READ
+    // Find GeantMaterial given a material id
+    GeantMaterial get_material(mat_id& material_id);
+    // Find material id given volume id
+    mat_id get_matid(vol_id& volume_id);
+    // Find GeantVolume given volume id
+    GeantVolume get_volume(vol_id& volume_id);
 
-    mat_id find(const std::string& material_name)
-    {
-        auto iter = name_to_index_.find(material_name);
-        REQUIRE(iter != name_to_index_.end());
-        return iter->second;
-    }
+    // Return list of volume ids
+    std::vector<vol_id> vol_id_list();
+    // Return list of material ids
+    std::vector<mat_id> mat_id_list();
 
-    GeantMaterial find(mat_id material_index)
-    {
-        auto iter = index_to_material_.find(material_index);
-        REQUIRE(iter != index_to_material_.end());
-        return iter->second;
-    }
+    // >>> WRITE (used only for export/import)
+    // Add pairs <mat_id, material> and <material.name, mat_id>
+    void add_material(mat_id id, GeantMaterial material);
+    // Add pairs <vol_id, volume> and <volume.name, vol_id>
+    void add_volume(vol_id id, GeantVolume volume);
+    // Link a given volume id with a given material id
+    void link_volume_material(vol_id& volid, mat_id& matid);
 
   private:
-    std::map<std::string, mat_id>   name_to_index_;
-    std::map<mat_id, GeantMaterial> index_to_material_;
+    // Material
+    std::map<std::string, mat_id>   name_to_matid_;
+    std::map<mat_id, GeantMaterial> matid_to_material_;
+    // Volume
+    std::map<std::string, vol_id> name_to_volid_;
+    std::map<vol_id, GeantVolume> volid_to_volume_;
+    // Volume to material
+    std::map<vol_id, mat_id> volid_to_matid_;
 };
 
 //---------------------------------------------------------------------------//

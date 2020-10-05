@@ -131,6 +131,9 @@ if(CELERITAS_USE_ROOT)
     io/GeantModel.hh
     io/GeantTableType.hh
     io/GeantMaterialTable.hh
+    io/GeantMaterial.hh
+    io/GeantElement.hh
+    io/GeantVolume.hh
     physics/base/ParticleMd.hh
     base/OpaqueId.hh
     LINKDEF io/GeantParticleLinkDef.h
@@ -140,6 +143,7 @@ if(CELERITAS_USE_ROOT)
   # Tests that use ROOT to load the data will have to link against this library.
   add_library(CeleritasIO SHARED
     io/GeantImporter.cc
+    io/GeantMaterialTable.cc
     CeleritasRootGeantParticle.cxx
   )
   add_library(Celeritas::IO ALIAS CeleritasIO)

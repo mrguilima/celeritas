@@ -29,6 +29,10 @@ using celeritas::GeantPhysicsVectorType;
 using celeritas::GeantProcess;
 using celeritas::GeantProcessType;
 using celeritas::GeantTableType;
+// Materials and volumes
+using celeritas::GeantMaterial;
+using celeritas::GeantMaterialTable;
+using celeritas::GeantVolume;
 
 //---------------------------------------------------------------------------//
 // TEST HARNESS
@@ -108,6 +112,23 @@ TEST_F(GeantImporterTest, import_tables)
             break;
         }
     }
-
     EXPECT_TRUE(lambda_kn_gamma_table);
+}
+
+//---------------------------------------------------------------------------//
+TEST_F(GeantImporterTest, import_materials)
+{
+    GeantImporter import(root_filename_.c_str());
+    auto          data = import();
+
+    auto matid_list = data.materials->mat_id_list();
+    auto volid_list = data.materials->vol_id_list();
+
+    EXPECT_GT(matid_list.size(), 0);
+    EXPECT_GT(volid_list.size(), 0);
+
+    GeantMaterialTable::mat_id matid    = 0;
+    GeantMaterial              material = data.materials->get_material(matid);
+
+    EXPECT_EQ(material.name, "Air");
 }

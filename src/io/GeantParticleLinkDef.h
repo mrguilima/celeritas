@@ -19,6 +19,9 @@
 #pragma link C++ class celeritas::ParticleMd+;
 #pragma link C++ class celeritas::PDGNumber+;
 #pragma link C++ class celeritas::GeantMaterialTable+;
+#pragma link C++ class celeritas::GeantMaterial+;
+#pragma link C++ class celeritas::GeantElement+;
+#pragma link C++ class celeritas::GeantVolume+;
 // clang-format on
 
 #endif

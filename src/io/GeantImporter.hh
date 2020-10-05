@@ -14,6 +14,7 @@
 
 #include "GeantParticle.hh"
 #include "GeantPhysicsTable.hh"
+#include "GeantMaterialTable.hh"
 #include "physics/base/ParticleParams.hh"
 #include "physics/base/ParticleDef.hh"
 #include "base/Types.hh"
@@ -38,7 +39,7 @@ namespace celeritas
  * Physics tables currently are a vector<GeantPhysicsTable>, since many
  * parameters are at play when selecting a given table:
  * GeantParticle, GeantTableType, GeantProcess, and GeantModel.
- * See GeantImporter.test.cc for an example.
+ * See GeantImporter.test.cc for an example on how to fetch a given table.
  * This method will probably have to be improved.
  */
 class GeantImporter
@@ -46,10 +47,9 @@ class GeantImporter
   public:
     struct result_type
     {
-        std::shared_ptr<ParticleParams> particle_params;
+        std::shared_ptr<ParticleParams>                 particle_params;
         std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
-        // TODO:
-        // std::shared_ptr<std::vector<GeantMaterialTable> material_tables;
+        std::shared_ptr<GeantMaterialTable>             materials;
     };
 
   public:
@@ -67,8 +67,8 @@ class GeantImporter
     std::shared_ptr<ParticleParams> load_particle_data();
     // Populate a vector of GeantPhysicsTable objects
     std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
-    // TODO
-    // std::shared_ptr<std::vector<GeantMaterialTable>> load_material_table_data();
+    // Load the GeantMaterialTable and update the shared_ptr address
+    std::shared_ptr<GeantMaterialTable> load_material_data();
 
   public:
     std::unique_ptr<TFile> root_input_;

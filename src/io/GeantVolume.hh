@@ -3,31 +3,29 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file DetectorConstruction.hh
+//! \file GeantVolume.hh
+//! \brief Store volume information
 //---------------------------------------------------------------------------//
 #pragma once
 
-#include <memory>
-#include <G4VUserDetectorConstruction.hh>
+#include <string>
 
-namespace geant_exporter
+#include "base/Types.hh"
+
+namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Load the detector geometry from a GDML input file.
+ * Store data for each volume. Struct used by the GeantMaterialTable class.
+ *
+ * The reason to create a separate struct instead of just populate a map with
+ * the volume name and id directly into GeantMaterialTable is to easily
+ * expand volume information if needed.
  */
-class DetectorConstruction : public G4VUserDetectorConstruction
+struct GeantVolume
 {
-  public:
-    explicit DetectorConstruction(G4String gdmlInput);
-    ~DetectorConstruction();
-
-    G4VPhysicalVolume* Construct() override;
-    std::shared_ptr<G4VPhysicalVolume> get_world_volume();
-
-  private:
-    std::shared_ptr<G4VPhysicalVolume> phys_vol_world_;
+    std::string name;
 };
 
 //---------------------------------------------------------------------------//
-} // namespace geant_exporter
+} // namespace celeritas

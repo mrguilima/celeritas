@@ -32,6 +32,7 @@
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
 #include "io/GeantMaterialTable.hh"
+#include "io/GeantVolume.hh"
 
 using celeritas::GeantMaterialTable;
 using celeritas::GeantParticle;
@@ -140,6 +141,39 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
 
 //---------------------------------------------------------------------------//
 /*!
+ * Recurring loop over all logical volumes.
+ *
+ * Function called by store_material_table(...)
+ */
+void loop_volumes(GeantMaterialTable& material_table,
+                  G4LogicalVolume*    logical_volume)
+{
+    // Loop over logical volumes
+    for (size_type i = 0; i < logical_volume->GetNoDaughters(); i++)
+    {
+        GeantVolume                volume;
+        GeantMaterialTable::vol_id volume_id;
+        GeantMaterialTable::mat_id material_id;
+
+        volume.name = logical_volume->GetName();
+        volume_id   = logical_volume->GetInstanceID();
+        material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
+
+        material_table.add_volume(volume_id, volume);
+        material_table.link_volume_material(volume_id, material_id);
+
+        // REPEAT
+        // Recurrent loop to read all logical volumes found in the gdml
+        auto daughter_vol = logical_volume->GetDaughter(i)->GetLogicalVolume();
+        if (daughter_vol->GetNoDaughters() > 0)
+        {
+            loop_volumes(material_table, daughter_vol);
+        }
+    }
+}
+
+//---------------------------------------------------------------------------//
+/*!
  * Write material table data to ROOT.
  *
  * The ROOT file must be open before this call.
@@ -150,17 +184,19 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
  *   - For cms, physics table size = 444 and material table size = 385
  * - Do we need any cuts?
  */
-void store_material_tables(TFile*                 root_file,
-                           G4ProductionCutsTable* g4production_cuts)
+void store_material_table(TFile*                             root_file,
+                          G4ProductionCutsTable*             g4production_cuts,
+                          std::shared_ptr<G4VPhysicalVolume> world_volume)
 {
     REQUIRE(root_file);
     REQUIRE(g4production_cuts);
+    REQUIRE(world_volume);
 
-    cout << "Exporting material tables..." << endl;
+    cout << "Exporting material and volume information..." << endl;
 
     TTree tree_materials("materials", "materials");
 
-    // Create temporary material table
+    // Create material table and ROOT branch
     GeantMaterialTable geant_material_table;
     tree_materials.Branch("GeantMaterialTable", &geant_material_table);
 
@@ -187,20 +223,23 @@ void store_material_tables(TFile*                 root_file,
             material.elements.push_back(element);
         }
 
-        geant_material_table.add(g4material_cuts->GetIndex(), material);
-
-        tree_materials.Fill();
-        cout << "  Added " << material.name << endl;
+        geant_material_table.add_material(g4material_cuts->GetIndex(),
+                                          material);
     }
-    cout << endl;
 
+    // Loop over volumes
+    loop_volumes(geant_material_table, world_volume->GetLogicalVolume());
+
+    tree_materials.Fill();
     root_file->Write();
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * This application exports particle and physics table data constructed by the
- * selected physics list. Output data is stored into a ROOT file.
+ * This application exports particle information, XS physics tables, material,
+ * and volume information constructed by the physics list and geometry.
+ *
+ * The data is stored into a ROOT file.
  */
 int main(int argc, char* argv[])
 {
@@ -217,16 +256,15 @@ int main(int argc, char* argv[])
 
     G4RunManager run_manager;
 
-    // TEMPORARY FLAG. Better remove or set verbosity to 0 in the future...
-    // run_manager.SetVerboseLevel(2);
-
     // Initialize the geometry
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
+    // Copy G4VPhysicalVolume for future work before releasing detector ptr
+    auto world_phys_volume = detector->get_world_volume();
     run_manager.SetUserInitialization(detector.release());
 
     // Load the physics list
 
-    // User-defined physics list
+    // User-defined physics list (see PhysicsList.hh)
     // auto physics_list = std::make_unique<PhysicsList>();
 
     // EM Standard Physics
@@ -249,14 +287,6 @@ int main(int argc, char* argv[])
 
     // >>> Export data
 
-    //---------------- TEMP [TESTING PURPOSES]
-    //! Dump physics tables
-    // G4UImanager::GetUIpointer()->ApplyCommand(
-    //    "/run/particle/storePhysicsTable tables");
-    // G4UImanager::GetUIpointer()->ApplyCommand(
-    //    "/run/particle/setStoredInAscii 1");
-    //----------------
-
     // Create the ROOT output file
     cout << "Creating " << root_output_filename << "..." << endl;
     TFile root_output(root_output_filename.c_str(), "recreate");
@@ -267,9 +297,10 @@ int main(int argc, char* argv[])
     // Store physics tables
     store_physics_tables(&root_output, G4ParticleTable::GetParticleTable());
 
-    // Store material tables
-    store_material_tables(&root_output,
-                          G4ProductionCutsTable::GetProductionCutsTable());
+    // Store material and volume information
+    store_material_table(&root_output,
+                         G4ProductionCutsTable::GetProductionCutsTable(),
+                         world_phys_volume);
 
     root_output.Close();
 

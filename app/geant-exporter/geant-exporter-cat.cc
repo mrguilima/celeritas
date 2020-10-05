@@ -11,6 +11,7 @@
 
 #include "physics/base/ParticleDef.hh"
 #include "io/GeantImporter.hh"
+#include "io/GeantMaterialTable.hh"
 
 using namespace celeritas;
 using std::cout;
@@ -31,13 +32,16 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::shared_ptr<const celeritas::ParticleParams> particles;
+    std::shared_ptr<const ParticleParams> particles;
+    std::shared_ptr<GeantMaterialTable>   materials;
+
     try
     {
         GeantImporter import(argv[1]);
 
         auto data = import();
         particles = data.particle_params;
+        materials = data.materials;
     }
     catch (const DebugError& e)
     {
@@ -46,6 +50,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    // Print particle list
     const auto& all_md = particles->md();
 
     cout << "Loaded " << all_md.size() << " particles from `" << argv[1]
@@ -68,6 +73,31 @@ Name              | PDG Code    | Mass [MeV] | Charge [e] | Decay [1/s]
              << setw(10) << setprecision(3) << def.charge.value() << " | "
              << setw(11) << setprecision(3) << def.decay_constant
              << '\n';
+        // clang-format on
+    }
+
+    // Print material list
+    std::vector<GeantMaterialTable::vol_id> volids = materials->vol_id_list();
+
+    cout << endl;
+    cout << "Loaded " << volids.size() << " volumes from `" << argv[1]
+         << "`.\n";
+    cout << R"gfm(
+Volume ID | Material ID | Volume Name                          | Material Name
+--------- | ----------- | ------------------------------------ | ---------------------------
+)gfm";
+
+    for (auto volid : volids)
+    {
+        auto volume   = materials->get_volume(volid);
+        auto matid    = materials->get_matid(volid);
+        auto material = materials->get_material(matid);
+
+        // clang-format off
+        cout << setw(9) << std::left << volid << " | "
+             << setw(11) << matid << " | "
+             << setw(36) << volume.name << " | "
+             << material.name << '\n';
         // clang-format on
     }
 

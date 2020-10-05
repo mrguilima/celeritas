@@ -11,22 +11,15 @@
 #include <string>
 #include <vector>
 
+#include "GeantElement.hh"
 #include "base/Types.hh"
 
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store data for each individual element and material
+ * Store data of a given material and its elements. Used by GeantMaterialTable.
  */
-struct GeantElement
-{
-    std::string name;
-    real_type   fraction;
-    int         z;
-    real_type   atomic_mass;
-};
-
 struct GeantMaterial
 {
     std::string               name;
