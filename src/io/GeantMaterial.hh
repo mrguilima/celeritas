@@ -20,7 +20,7 @@ namespace celeritas
 /*!
  * Store data of a given material and its elements.
  *
- * Used by the GeantMaterialTable class.
+ * Used by the GeantGeometryMap class.
  */
 struct GeantMaterial
 {

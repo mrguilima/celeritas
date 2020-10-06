@@ -3,7 +3,7 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file GeantParticleLinkDef.h
+//! \file GeantRootInterfaceLinkDef.h
 //! \brief Define the classes added to the ROOT dictionary
 //---------------------------------------------------------------------------//
 #ifdef __CINT__
@@ -18,7 +18,7 @@
 #pragma link C++ class celeritas::GeantTableType+;
 #pragma link C++ class celeritas::ParticleMd+;
 #pragma link C++ class celeritas::PDGNumber+;
-#pragma link C++ class celeritas::GeantMaterialTable+;
+#pragma link C++ class celeritas::GeantGeometryMap+;
 #pragma link C++ class celeritas::GeantMaterial+;
 #pragma link C++ class celeritas::GeantElement+;
 #pragma link C++ class celeritas::GeantVolume+;

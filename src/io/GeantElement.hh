@@ -17,7 +17,7 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Store element data. Used by GeantMaterial and GeantMaterialTable.
+ * Store element data. Used by GeantMaterial and GeantGeometryMap.
  */
 struct GeantElement
 {

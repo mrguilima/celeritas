@@ -3,8 +3,8 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file GeantMaterialTable.hh
-//! \brief Store material index information for the GeantPhysicsTable
+//! \file GeantGeometryMap.hh
+//! \brief Store and map volume and material information
 //---------------------------------------------------------------------------//
 #pragma once
 
@@ -23,7 +23,7 @@ namespace celeritas
  * GeantPhysicsTable. The volume id links a geometry volume with its respective
  * material id for lookup.
  */
-class GeantMaterialTable
+class GeantGeometryMap
 {
   public:
     //@{
@@ -33,8 +33,9 @@ class GeantMaterialTable
     using vol_id = int;
     //@}
 
-    GeantMaterialTable()  = default;
-    ~GeantMaterialTable() = default;
+    // Construct/destruct with defaults
+    GeantGeometryMap();
+    ~GeantGeometryMap();
 
     // >>> READ
     // Find GeantMaterial given a material id
@@ -44,28 +45,23 @@ class GeantMaterialTable
     // Find GeantVolume given volume id
     GeantVolume get_volume(vol_id& volume_id);
 
-    // Return list of volume ids
-    std::vector<vol_id> vol_id_list();
-    // Return list of material ids
-    std::vector<mat_id> mat_id_list();
+    // Only used in geant-exporter-cat. Not sure we need this...
+    // Return a copy of private member volid_to_matid_
+    std::map<vol_id, mat_id> volid_to_matid_map();
 
-    // >>> WRITE (used only for export/import)
-    // Add pairs <mat_id, material> and <material.name, mat_id>
+    // >>> WRITE
+    // Add pair <mat_id, material> to the map
     void add_material(mat_id id, GeantMaterial material);
-    // Add pairs <vol_id, volume> and <volume.name, vol_id>
+    // Add pair <vol_id, volume> to the map
     void add_volume(vol_id id, GeantVolume volume);
-    // Link a given volume id with a given material id
-    void link_volume_material(vol_id& volid, mat_id& matid);
+    // Add pair <vol_id, mat_id> to the map
+    void link_volume_material(vol_id volid, mat_id matid);
 
   private:
-    // Material
-    std::map<std::string, mat_id>   name_to_matid_;
+    // Should we leave these public?
     std::map<mat_id, GeantMaterial> matid_to_material_;
-    // Volume
-    std::map<std::string, vol_id> name_to_volid_;
-    std::map<vol_id, GeantVolume> volid_to_volume_;
-    // Volume to material
-    std::map<vol_id, mat_id> volid_to_matid_;
+    std::map<vol_id, GeantVolume>   volid_to_volume_;
+    std::map<vol_id, mat_id>        volid_to_matid_;
 };
 
 //---------------------------------------------------------------------------//

@@ -11,7 +11,7 @@
 
 #include "physics/base/ParticleDef.hh"
 #include "io/GeantImporter.hh"
-#include "io/GeantMaterialTable.hh"
+#include "io/GeantGeometryMap.hh"
 
 using namespace celeritas;
 using std::cout;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     }
 
     std::shared_ptr<const ParticleParams> particles;
-    std::shared_ptr<GeantMaterialTable>   materials;
+    std::shared_ptr<GeantGeometryMap>     geometry;
 
     try
     {
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 
         auto data = import();
         particles = data.particle_params;
-        materials = data.materials;
+        geometry  = data.geometry;
     }
     catch (const DebugError& e)
     {
@@ -77,22 +77,24 @@ Name              | PDG Code    | Mass [MeV] | Charge [e] | Decay [1/s]
     }
 
     // Print volume / material list
-    std::vector<GeantMaterialTable::vol_id> volids = materials->vol_id_list();
+    auto map = geometry->volid_to_matid_map();
 
     cout << endl;
-    cout << "Loaded " << volids.size() << " volumes from `" << argv[1]
-         << "`.\n";
+    cout << "Loaded " << map.size() << " volumes from `" << argv[1] << "`.\n";
 
     cout << R"gfm(
 Volume ID | Material ID | Volume Name                          | Material Name
 --------- | ----------- | ------------------------------------ | ---------------------------
 )gfm";
 
-    for (auto volid : volids)
+    std::map<GeantGeometryMap::vol_id, GeantGeometryMap::mat_id>::iterator iter;
+
+    for (iter = map.begin(); iter != map.end(); iter++)
     {
-        auto volume   = materials->get_volume(volid);
-        auto matid    = materials->get_matid(volid);
-        auto material = materials->get_material(matid);
+        auto volid    = iter->first;
+        auto matid    = iter->second;
+        auto volume   = geometry->get_volume(volid);
+        auto material = geometry->get_material(matid);
 
         // clang-format off
         cout << setw(9) << std::left << volid << " | "

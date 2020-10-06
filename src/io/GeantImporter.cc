@@ -45,11 +45,11 @@ GeantImporter::result_type GeantImporter::operator()()
     result_type geant_data;
     geant_data.particle_params = this->load_particle_data();
     geant_data.physics_tables  = this->load_physics_table_data();
-    geant_data.materials       = this->load_material_data();
+    geant_data.geometry        = this->load_material_data();
 
     ENSURE(geant_data.particle_params);
     ENSURE(geant_data.physics_tables);
-    ENSURE(geant_data.materials);
+    ENSURE(geant_data.geometry);
 
     return geant_data;
 }
@@ -140,23 +140,22 @@ GeantImporter::load_physics_table_data()
 }
 //---------------------------------------------------------------------------//
 /*!
- * Load GeantMaterialTable info
+ * Load GeantGeometryMap info
  */
-std::shared_ptr<GeantMaterialTable> GeantImporter::load_material_data()
+std::shared_ptr<GeantGeometryMap> GeantImporter::load_material_data()
 {
-    // Open materials branch
-    std::unique_ptr<TTree> tree_materials(
-        root_input_->Get<TTree>("materials"));
-    CHECK(tree_materials);
-    CHECK(tree_materials->GetEntries()); // Must be 1
+    // Open geometry branch
+    std::unique_ptr<TTree> tree_geometry(root_input_->Get<TTree>("geometry"));
+    CHECK(tree_geometry);
+    CHECK(tree_geometry->GetEntries()); // Must be 1
 
     // Load branch and material data
-    GeantMaterialTable  materials;
-    GeantMaterialTable* temp_materials_ptr = &materials;
-    tree_materials->SetBranchAddress("GeantMaterialTable", &temp_materials_ptr);
-    tree_materials->GetEntry(0);
+    GeantGeometryMap  geometry;
+    GeantGeometryMap* geometry_ptr = &geometry;
+    tree_geometry->SetBranchAddress("GeantGeometryMap", &geometry_ptr);
+    tree_geometry->GetEntry(0);
 
-    return std::make_shared<GeantMaterialTable>(std::move(materials));
+    return std::make_shared<GeantGeometryMap>(std::move(geometry));
 }
 
 //---------------------------------------------------------------------------//

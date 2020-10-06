@@ -14,7 +14,7 @@
 
 #include "GeantParticle.hh"
 #include "GeantPhysicsTable.hh"
-#include "GeantMaterialTable.hh"
+#include "GeantGeometryMap.hh"
 #include "physics/base/ParticleParams.hh"
 #include "physics/base/ParticleDef.hh"
 #include "base/Types.hh"
@@ -42,7 +42,10 @@ namespace celeritas
  * See GeantImporter.test.cc for an example on how to fetch a given table.
  * This method will probably have to be improved.
  *
- * Material and volume information is stored in a GeantMaterialTable object.
+ * Material and volume information is stored in a GeantGeometryMap object.
+ * The GeantGeometryMap::mat_id value returned from a given vol_id represents
+ * the position of said material in the GeantPhysicsTable:
+ * \c GeantPhysicsTable.physics_vectors.at(mat_id_value).
  */
 class GeantImporter
 {
@@ -51,7 +54,7 @@ class GeantImporter
     {
         std::shared_ptr<ParticleParams>                 particle_params;
         std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
-        std::shared_ptr<GeantMaterialTable>             materials;
+        std::shared_ptr<GeantGeometryMap>               geometry;
     };
 
   public:
@@ -69,8 +72,8 @@ class GeantImporter
     std::shared_ptr<ParticleParams> load_particle_data();
     // Populate a vector of GeantPhysicsTable objects
     std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
-    // Load the GeantMaterialTable and update the shared_ptr address
-    std::shared_ptr<GeantMaterialTable> load_material_data();
+    // Load the GeantGeometryMap and update the shared_ptr address
+    std::shared_ptr<GeantGeometryMap> load_material_data();
 
   public:
     std::unique_ptr<TFile> root_input_;

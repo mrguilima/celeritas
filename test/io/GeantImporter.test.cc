@@ -33,8 +33,8 @@ using celeritas::GeantProcess;
 using celeritas::GeantProcessType;
 using celeritas::GeantTableType;
 // Materials and volumes
+using celeritas::GeantGeometryMap;
 using celeritas::GeantMaterial;
-using celeritas::GeantMaterialTable;
 using celeritas::GeantVolume;
 
 //---------------------------------------------------------------------------//
@@ -119,25 +119,22 @@ TEST_F(GeantImporterTest, import_tables)
 }
 
 //---------------------------------------------------------------------------//
-TEST_F(GeantImporterTest, import_materials)
+TEST_F(GeantImporterTest, import_geometry)
 {
     GeantImporter import(root_filename_.c_str());
     auto          data = import();
 
-    auto matid_list = data.materials->mat_id_list();
-    auto volid_list = data.materials->vol_id_list();
-
-    EXPECT_GT(matid_list.size(), 0);
-    EXPECT_GT(volid_list.size(), 0);
+    auto map = data.geometry->volid_to_matid_map();
+    EXPECT_EQ(map.size(), 1474);
 
     // Fetch a given GeantVolume provided a vol_id
-    GeantMaterialTable::vol_id volid  = 10;
-    GeantVolume                volume = data.materials->get_volume(volid);
+    GeantGeometryMap::vol_id volid  = 10;
+    GeantVolume              volume = data.geometry->get_volume(volid);
     EXPECT_EQ(volume.name, "TrackerPatchPannel");
 
     // Fetch respective mat_id and GeantMaterial from the given vol_id
-    GeantMaterialTable::mat_id matid    = data.materials->get_matid(volid);
-    GeantMaterial              material = data.materials->get_material(matid);
+    GeantGeometryMap::mat_id matid    = data.geometry->get_matid(volid);
+    GeantMaterial            material = data.geometry->get_material(matid);
 
     // Material
     EXPECT_EQ(matid, 31);

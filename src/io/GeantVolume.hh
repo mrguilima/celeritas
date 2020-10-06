@@ -18,10 +18,10 @@ namespace celeritas
 /*!
  * Store data for each volume.
  *
- * Used by the GeantMaterialTable class.
+ * Used by the GeantGeometryMap class.
  *
  * The reason for this (currently absurdly simple) struct instead of just
- * keeping tab of volume names directly in the GeantMaterialTable, is to
+ * keeping tab of volume names directly in the GeantGeometryMap, is to
  * easily import further volume information in the future.
  */
 struct GeantVolume

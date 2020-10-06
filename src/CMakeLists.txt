@@ -123,28 +123,28 @@ endforeach()
 if(CELERITAS_USE_ROOT)
   include(${ROOT_USE_FILE})
 
-  root_generate_dictionary(CeleritasRootGeantInterface
+  root_generate_dictionary(CeleritasGeantRootInterface
     io/GeantParticle.hh
     io/GeantPhysicsTable.hh
     io/GeantPhysicsVector.hh
     io/GeantProcess.hh
     io/GeantModel.hh
     io/GeantTableType.hh
-    io/GeantMaterialTable.hh
+    io/GeantGeometryMap.hh
     io/GeantMaterial.hh
     io/GeantElement.hh
     io/GeantVolume.hh
     physics/base/ParticleMd.hh
     base/OpaqueId.hh
-    LINKDEF io/GeantParticleLinkDef.h
+    LINKDEF io/GeantRootInterfaceLinkDef.h
   )
 
   # Note that ROOT requires *shared* libraries due to runtime initialization.
   # Tests that use ROOT to load the data will have to link against this library.
   add_library(CeleritasIO SHARED
     io/GeantImporter.cc
-    io/GeantMaterialTable.cc
-    CeleritasRootGeantInterface.cxx
+    io/GeantGeometryMap.cc
+    CeleritasGeantRootInterface.cxx
   )
   add_library(Celeritas::IO ALIAS CeleritasIO)
   target_link_libraries(CeleritasIO

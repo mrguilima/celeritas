@@ -10,7 +10,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <limits>
 
 #include <G4RunManager.hh>
 #include <G4UImanager.hh>
@@ -32,10 +31,9 @@
 #include "GeantPhysicsTableWriter.hh"
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
-#include "io/GeantMaterialTable.hh"
-#include "io/GeantVolume.hh"
+#include "io/GeantGeometryMap.hh"
 
-using celeritas::GeantMaterialTable;
+using celeritas::GeantGeometryMap;
 using celeritas::GeantParticle;
 using namespace geant_exporter;
 using std::cout;
@@ -144,31 +142,30 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
 /*!
  * Recurring loop over all logical volumes.
  *
- * Function called by store_material_table(...)
+ * Function called by store_geometry(...)
  */
-void loop_volumes(GeantMaterialTable& material_table,
-                  G4LogicalVolume*    logical_volume)
+void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
 {
     // Loop over logical volumes
     for (size_type i = 0; i < logical_volume->GetNoDaughters(); i++)
     {
-        GeantVolume                volume;
-        GeantMaterialTable::vol_id volume_id;
-        GeantMaterialTable::mat_id material_id;
+        GeantVolume              volume;
+        GeantGeometryMap::vol_id volume_id;
+        GeantGeometryMap::mat_id material_id;
 
         volume.name = logical_volume->GetName();
         volume_id   = logical_volume->GetInstanceID();
         material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
 
-        material_table.add_volume(volume_id, volume);
-        material_table.link_volume_material(volume_id, material_id);
+        geometry.add_volume(volume_id, volume);
+        geometry.link_volume_material(volume_id, material_id);
 
         // REPEAT
         // Recurrent loop to read all logical volumes found in the gdml
         auto daughter_vol = logical_volume->GetDaughter(i)->GetLogicalVolume();
         if (daughter_vol->GetNoDaughters() > 0)
         {
-            loop_volumes(material_table, daughter_vol);
+            loop_volumes(geometry, daughter_vol);
         }
     }
 }
@@ -179,9 +176,9 @@ void loop_volumes(GeantMaterialTable& material_table,
  *
  * The ROOT file must be open before this call.
  */
-void store_material_table(TFile*                             root_file,
-                          G4ProductionCutsTable*             g4production_cuts,
-                          std::shared_ptr<G4VPhysicalVolume> world_volume)
+void store_geometry(TFile*                             root_file,
+                    G4ProductionCutsTable*             g4production_cuts,
+                    std::shared_ptr<G4VPhysicalVolume> world_volume)
 {
     REQUIRE(root_file);
     REQUIRE(g4production_cuts);
@@ -189,11 +186,11 @@ void store_material_table(TFile*                             root_file,
 
     cout << "Exporting material and volume information..." << endl;
 
-    TTree tree_materials("materials", "materials");
+    TTree tree_materials("geometry", "geometry");
 
     // Create material table and ROOT branch
-    GeantMaterialTable geant_material_table;
-    tree_materials.Branch("GeantMaterialTable", &geant_material_table);
+    GeantGeometryMap geometry;
+    tree_materials.Branch("GeantGeometryMap", &geometry);
 
     // Loop over materials and elements
     for (size_type i = 0; i < g4production_cuts->GetTableSize(); i++)
@@ -218,12 +215,11 @@ void store_material_table(TFile*                             root_file,
             material.elements.push_back(element);
         }
 
-        geant_material_table.add_material(g4material_cuts->GetIndex(),
-                                          material);
+        geometry.add_material(g4material_cuts->GetIndex(), material);
     }
 
     // Loop over volumes
-    loop_volumes(geant_material_table, world_volume->GetLogicalVolume());
+    loop_volumes(geometry, world_volume->GetLogicalVolume());
 
     tree_materials.Fill();
     root_file->Write();
@@ -293,9 +289,9 @@ int main(int argc, char* argv[])
     store_physics_tables(&root_output, G4ParticleTable::GetParticleTable());
 
     // Store material and volume information
-    store_material_table(&root_output,
-                         G4ProductionCutsTable::GetProductionCutsTable(),
-                         world_phys_volume);
+    store_geometry(&root_output,
+                   G4ProductionCutsTable::GetProductionCutsTable(),
+                   world_phys_volume);
 
     root_output.Close();
 
