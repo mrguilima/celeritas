@@ -317,16 +317,17 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable* table,
 
         for (size_type j = 0; j < phys_vector->GetVectorLength(); j++)
         {
+            // Code interface for changing G4PhysicsVector data units
             real_type energy   = phys_vector->Energy(j) / MeV;
             real_type xs_eloss = (*phys_vector)[j];
 
             if (is_eloss)
                 xs_eloss /= MeV;
             else
-                xs_eloss /= barn;
+                xs_eloss /= (1 / cm);
 
             geant_physics_vector.energy.push_back(energy);     // [MeV]
-            geant_physics_vector.xs_eloss.push_back(xs_eloss); // [barn/MeV]
+            geant_physics_vector.xs_eloss.push_back(xs_eloss); // [1/cm or MeV]
         }
         this->table_.physics_vectors.push_back(geant_physics_vector);
     }
