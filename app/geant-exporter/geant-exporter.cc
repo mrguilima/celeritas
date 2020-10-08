@@ -146,25 +146,27 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
  */
 void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
 {
-    // Loop over logical volumes
-    for (size_type i = 0; i < logical_volume->GetNoDaughters(); i++)
+    // Add current logical volume
+    GeantVolume              volume;
+    GeantGeometryMap::vol_id volume_id;
+    GeantGeometryMap::mat_id material_id;
+
+    volume.name = logical_volume->GetName();
+    volume_id   = logical_volume->GetInstanceID();
+    material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
+
+    geometry.add_volume(volume_id, volume);
+    geometry.link_volume_material(volume_id, material_id);
+
+    // Check for daughter volumes
+    if (logical_volume->GetNoDaughters() > 0)
     {
-        GeantVolume              volume;
-        GeantGeometryMap::vol_id volume_id;
-        GeantGeometryMap::mat_id material_id;
-
-        volume.name = logical_volume->GetName();
-        volume_id   = logical_volume->GetInstanceID();
-        material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
-
-        geometry.add_volume(volume_id, volume);
-        geometry.link_volume_material(volume_id, material_id);
-
-        // REPEAT
-        // Recurrent loop to read all logical volumes found in the gdml
-        auto daughter_vol = logical_volume->GetDaughter(i)->GetLogicalVolume();
-        if (daughter_vol->GetNoDaughters() > 0)
+        // Repeat for every daughter volume
+        for (size_type i = 0; i < logical_volume->GetNoDaughters(); i++)
         {
+            auto daughter_vol
+                = logical_volume->GetDaughter(i)->GetLogicalVolume();
+
             loop_volumes(geometry, daughter_vol);
         }
     }

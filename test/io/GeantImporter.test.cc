@@ -125,7 +125,7 @@ TEST_F(GeantImporterTest, import_geometry)
     auto          data = import();
 
     auto map = data.geometry->volid_to_matid_map();
-    EXPECT_EQ(map.size(), 1474);
+    EXPECT_EQ(map.size(), 4257);
 
     // Fetch a given GeantVolume provided a vol_id
     GeantGeometryMap::vol_id volid  = 10;
@@ -149,7 +149,7 @@ TEST_F(GeantImporterTest, import_geometry)
     real_type   atomic_mass[4]
         = {14.00676896, 15.999390411, 39.94769335110001, 1.007940752665138};
 
-    for (int i = 0; i < 4; i++)
+    for (size_t i = 0; i < 4; i++)
     {
         EXPECT_EQ(material.elements.at(i).name, elements_name[i]);
         EXPECT_SOFT_EQ(material.elements.at(i).fraction, fraction[i]);
