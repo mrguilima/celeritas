@@ -25,19 +25,22 @@ class TrackInitTest : public celeritas::Test
   protected:
     void SetUp() override
     {
+        using units::MevEnergy;
+        auto zero = zero_quantity();
+
         num_tracks = 10;
 
         // Set up shared standard model particle data
         ParticleParams::VecAnnotatedDefs defs
             = {{{"gamma", pdg::gamma()},
-                {0, 0, ParticleDef::stable_decay_constant()}}};
+                {zero, zero, ParticleDef::stable_decay_constant()}}};
         pparams = std::make_shared<ParticleParams>(std::move(defs));
 
         // Create primary particles
         for (size_type i = 0; i < num_tracks; ++i)
         {
             host_primaries.push_back({ParticleDefId{0},
-                                      100. * (i + 1),
+                                      MevEnergy{100. * (i + 1)},
                                       {0., 0., 0.},
                                       {0., 0., 1.},
                                       EventId{0}});

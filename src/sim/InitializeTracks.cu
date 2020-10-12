@@ -24,13 +24,13 @@ namespace celeritas
  * Initialize the track states on device. The track initializers are created
  * from either primary particles or secondaries. The new tracks are inserted
  * into empty slots (vacancies) in the track vector.
+ *
+ * TODO: Add sim states
  */
 __global__ void
 initialize_tracks_kernel(size_type                    num_tracks,
                          const span<size_type>        vacancies,
                          const span<TrackInitializer> initializers,
-                         // const SimParamsPointers      sparams,
-                         // const SimStatePointers       sstates,
                          const ParticleParamsPointers pparams,
                          const ParticleStatePointers  pstates,
                          const GeoParamsPointers      gparams,
@@ -45,10 +45,6 @@ initialize_tracks_kernel(size_type                    num_tracks,
 
         // Index of the empty slot to create the new track in
         size_type slot_id = vacancies.data()[thread_id];
-
-        // Initialize sim state
-        // SimTrackView sim(sparams, sstates, ThreadId(slot_id));
-        // sim = init.sim;
 
         // Initialize particle physics data
         ParticleTrackView particle(pparams, pstates, ThreadId(slot_id));
@@ -102,7 +98,7 @@ __global__ void count_secondaries_kernel(size_type* secondary_count,
         // Count how many secondaries survived cutoffs for each track
         for (auto secondary : result.secondaries)
         {
-            if (secondary.energy > 0)
+            if (secondary.energy.value() > 0)
             {
                 ++secondary_count[thread_id];
             }
@@ -149,7 +145,7 @@ create_from_secondaries_kernel(size_type*              cum_secondaries,
         for (auto secondary : result.secondaries)
         {
             // If the secondary survived cutoffs
-            if (secondary.energy > 0)
+            if (secondary.energy.value() > 0)
             {
                 // TODO: right now only copying energy
                 TrackInitializer& init = initializers.data()[index];
@@ -168,8 +164,6 @@ create_from_secondaries_kernel(size_type*              cum_secondaries,
  */
 void initialize_tracks(VacancyStore&          vacancies,
                        TrackInitializerStore& initializers,
-                       // const SimParamsPointers      sparams,
-                       // const SimStatePointers       sstates,
                        const ParticleParamsPointers pparams,
                        const ParticleStatePointers  pstates,
                        const GeoParamsPointers      gparams,
@@ -187,8 +181,6 @@ void initialize_tracks(VacancyStore&          vacancies,
         num_tracks,
         vacancies.device_pointers(),
         initializers.device_pointers(),
-        // sparams,
-        // sstates,
         pparams,
         pstates,
         gparams,

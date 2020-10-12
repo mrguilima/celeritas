@@ -44,7 +44,7 @@ struct Interactor
         Interaction result;
 
         // Kill some tracks to create vacancies in the track vector
-        if (static_cast<int>(energy) % 3)
+        if (static_cast<int>(energy.value()) % 3)
         {
             result.action = Action::scattered;
         }
@@ -59,12 +59,13 @@ struct Interactor
         for (unsigned long int i = 0; i < alloc_size; ++i)
         {
             result.secondaries[i].def_id = ParticleDefId(0);
-            result.secondaries[i].energy = i * energy / 100;
+            result.secondaries[i].energy
+                = units::MevEnergy{i * energy.value() / 100};
         }
         return result;
     }
 
-    double                  energy;
+    units::MevEnergy        energy;
     SecondaryAllocatorView& allocate_secondaries;
 };
 

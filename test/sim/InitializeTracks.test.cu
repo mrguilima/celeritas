@@ -57,7 +57,7 @@ __global__ void tracks_test_kernel(size_type              num_tracks,
     if (thread_id.get() < num_tracks)
     {
         ParticleTrackView particle(pparams, pstates, thread_id);
-        output[thread_id.get()] = particle.energy();
+        output[thread_id.get()] = particle.energy().value();
     }
 }
 
@@ -68,7 +68,7 @@ initializers_test_kernel(span<TrackInitializer> initializers, double* output)
     if (thread_id < initializers.size())
     {
         TrackInitializer& init = initializers.data()[thread_id];
-        output[thread_id]      = init.particle.energy;
+        output[thread_id]      = init.particle.energy.value();
     }
 }
 

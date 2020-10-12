@@ -37,8 +37,6 @@ struct is_alive
 // Initialize the track states on device.
 void initialize_tracks(VacancyStore&          vacancies,
                        TrackInitializerStore& initializers,
-                       // const SimParamsPointers      sparams,
-                       // const SimStatePointers       sstates,
                        const ParticleParamsPointers pparams,
                        const ParticleStatePointers  pstates,
                        const GeoParamsPointers      gparams,
