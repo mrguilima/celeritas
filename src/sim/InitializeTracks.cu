@@ -7,12 +7,13 @@
 //---------------------------------------------------------------------------//
 #include "InitializeTracks.hh"
 
-#include "TrackInitializerPointers.hh"
+#include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
+#include <thrust/remove.h>
+#include <thrust/scan.h>
+#include <vector>
 #include "base/Atomics.hh"
-#include "thrust/host_vector.h"
-#include "thrust/scan.h"
-#include "thrust/sort.h"
-#include "thrust/fill.h"
+#include "base/DeviceVector.hh"
 
 namespace celeritas
 {
@@ -25,11 +26,11 @@ namespace celeritas
  * into empty slots (vacancies) in the track vector.
  */
 __global__ void
-initialize_tracks_kernel(size_type                      num_tracks,
-                         const unsigned long long int*  vacancies,
-                         const TrackInitializerPointers initializers,
-                         // const SimParamsPointers        sparams,
-                         // const SimStatePointers         sstates,
+initialize_tracks_kernel(size_type                    num_tracks,
+                         const span<size_type>        vacancies,
+                         const span<TrackInitializer> initializers,
+                         // const SimParamsPointers      sparams,
+                         // const SimStatePointers       sstates,
                          const ParticleParamsPointers pparams,
                          const ParticleStatePointers  pstates,
                          const GeoParamsPointers      gparams,
@@ -39,11 +40,11 @@ initialize_tracks_kernel(size_type                      num_tracks,
     if (thread_id < num_tracks)
     {
         // Get the track initializer, starting from the back of the vector
-        size_type               init_id = *initializers.size - thread_id - 1;
-        const TrackInitializer& init    = initializers.storage[init_id];
+        size_type               init_id = initializers.size() - thread_id - 1;
+        const TrackInitializer& init    = initializers.data()[init_id];
 
         // Index of the empty slot to create the new track in
-        size_type slot_id = vacancies[thread_id];
+        size_type slot_id = vacancies.data()[thread_id];
 
         // Initialize sim state
         // SimTrackView sim(sparams, sstates, ThreadId(slot_id));
@@ -63,9 +64,8 @@ initialize_tracks_kernel(size_type                      num_tracks,
 /*!
  * Find empty slots in the track vector.
  */
-__global__ void find_vacancies_kernel(span<const Interaction> interactions,
-                                      unsigned long long int* num_vacancies,
-                                      unsigned long long int* vacancies)
+__global__ void find_vacancies_kernel(span<size_type>         vacancies,
+                                      span<const Interaction> interactions)
 {
     auto thread_id = KernelParamCalculator::thread_id().get();
     if (thread_id < interactions.size())
@@ -76,8 +76,12 @@ __global__ void find_vacancies_kernel(span<const Interaction> interactions,
         // initializing new particles
         if (action_killed(result.action))
         {
-            unsigned long long int index = atomic_add(num_vacancies, 1ull);
-            vacancies[index]             = thread_id;
+            vacancies.data()[thread_id] = thread_id;
+        }
+        else
+        {
+            // Flag as a track that's still alive
+            vacancies.data()[thread_id] = interactions.size();
         }
     }
 }
@@ -86,12 +90,13 @@ __global__ void find_vacancies_kernel(span<const Interaction> interactions,
 /*!
  * Count the number of secondaries that survived cutoffs for each interaction.
  */
-__global__ void count_secondaries_kernel(span<const Interaction> interactions,
-                                         size_type* num_secondaries)
+__global__ void count_secondaries_kernel(size_type* secondary_count,
+                                         span<const Interaction> interactions)
 {
     auto thread_id = KernelParamCalculator::thread_id().get();
     if (thread_id < interactions.size())
     {
+        secondary_count[thread_id] = 0;
         const Interaction& result = interactions[thread_id];
 
         // Count how many secondaries survived cutoffs for each track
@@ -99,7 +104,7 @@ __global__ void count_secondaries_kernel(span<const Interaction> interactions,
         {
             if (secondary.energy > 0)
             {
-                ++num_secondaries[thread_id];
+                ++secondary_count[thread_id];
             }
         }
     }
@@ -110,14 +115,14 @@ __global__ void count_secondaries_kernel(span<const Interaction> interactions,
  * Create track initializers on device from primary particles.
  */
 __global__ void
-primary_initializers_kernel(span<const Primary>      primaries,
-                            TrackInitializerPointers initializers)
+create_from_primaries_kernel(span<const Primary>    primaries,
+                             span<TrackInitializer> initializers)
 {
     auto thread_id = KernelParamCalculator::thread_id().get();
     if (thread_id < primaries.size())
     {
-        size_type         offset_id = *initializers.size;
-        TrackInitializer& init = initializers.storage[offset_id + thread_id];
+        size_type         offset_id = initializers.size();
+        TrackInitializer& init = initializers.data()[offset_id + thread_id];
 
         // Create a new track initializer from a primary particle
         init = primaries[thread_id];
@@ -129,9 +134,9 @@ primary_initializers_kernel(span<const Primary>      primaries,
  * Create track initializers on device from secondary particles.
  */
 __global__ void
-secondary_initializers_kernel(size_type*               cum_secondaries,
-                              span<const Interaction>  interactions,
-                              TrackInitializerPointers initializers)
+create_from_secondaries_kernel(size_type*              cum_secondaries,
+                               span<const Interaction> interactions,
+                               span<TrackInitializer>  initializers)
 {
     auto thread_id = KernelParamCalculator::thread_id().get();
     if (thread_id < interactions.size())
@@ -147,7 +152,7 @@ secondary_initializers_kernel(size_type*               cum_secondaries,
             if (secondary.energy > 0)
             {
                 // TODO: right now only copying energy
-                TrackInitializer& init = initializers.storage[index];
+                TrackInitializer& init = initializers.data()[index];
                 init.particle.energy   = secondary.energy;
                 ++index;
             }
@@ -156,35 +161,32 @@ secondary_initializers_kernel(size_type*               cum_secondaries,
 }
 
 //---------------------------------------------------------------------------//
-/*!
- * Create track initializers on device from primary particles.
- */
-//---------------------------------------------------------------------------//
 // KERNEL INTERFACE
 //---------------------------------------------------------------------------//
 /*!
  * Initialize the track states on device.
  */
-void initialize_tracks(device_vector<unsigned long long int>& vacancies,
-                       TrackInitializerStore&                 storage,
-                       // const SimParamsPointers                sparams,
-                       // const SimStatePointers                 sstates,
+void initialize_tracks(VacancyStore&          vacancies,
+                       TrackInitializerStore& initializers,
+                       // const SimParamsPointers      sparams,
+                       // const SimStatePointers       sstates,
                        const ParticleParamsPointers pparams,
                        const ParticleStatePointers  pstates,
                        const GeoParamsPointers      gparams,
                        const GeoStatePointers       gstates)
 {
-    // Resize vacancy vector to the number of tracks to be inserted
-    size_type count = std::min(vacancies.size(), storage.get_size());
-    vacancies.resize(count);
+    // The number of new tracks to initialize is the smaller of the number of
+    // empty slots in the track vector and the number of track initializers
+    size_type num_tracks = std::min(vacancies.size(), initializers.size());
+    vacancies.resize(num_tracks);
 
     // Initialize tracks on device
     KernelParamCalculator calc_launch_params;
-    auto                  params = calc_launch_params(count);
+    auto                  params = calc_launch_params(num_tracks);
     initialize_tracks_kernel<<<params.grid_size, params.block_size>>>(
-        count,
-        thrust::raw_pointer_cast(vacancies.data()),
-        storage.device_pointers(),
+        num_tracks,
+        vacancies.device_pointers(),
+        initializers.device_pointers(),
         // sparams,
         // sstates,
         pparams,
@@ -195,54 +197,54 @@ void initialize_tracks(device_vector<unsigned long long int>& vacancies,
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 
     // Resize the vector of track initializers
-    storage.resize(storage.get_size() - count);
+    initializers.resize(initializers.size() - num_tracks);
 }
 
 //---------------------------------------------------------------------------//
 /*!
  * Find empty slots in the vector of tracks
  */
-void find_vacancies(span<const Interaction>                interactions,
-                    device_vector<unsigned long long int>& num_vacancies,
-                    device_vector<unsigned long long int>& vacancies)
+void find_vacancies(VacancyStore&           vacancies,
+                    span<const Interaction> interactions)
 {
-    vacancies.resize(interactions.size());
-    num_vacancies.resize(1);
-    thrust::fill(num_vacancies.begin(), num_vacancies.end(), 0);
+    // Resize the vector of vacancies to be equal to the number of tracks
+    size_type num_tracks = interactions.size();
+    vacancies.resize(num_tracks);
 
     KernelParamCalculator calc_launch_params;
-    auto                  params = calc_launch_params(interactions.size());
+    auto                  params = calc_launch_params(num_tracks);
     find_vacancies_kernel<<<params.grid_size, params.block_size>>>(
-        interactions,
-        thrust::raw_pointer_cast(num_vacancies.data()),
-        thrust::raw_pointer_cast(vacancies.data()));
+        vacancies.device_pointers(), interactions);
 
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 
-    // Get the number of empty slots via host-device copy and resize the
-    // vacancy vector
-    thrust::host_vector<unsigned long long int> size = num_vacancies;
-    vacancies.resize(size.front());
+    // Remove all the elements in the vacancy vector that were flagged as
+    // active tracks, so we are left with a vector containing the (sorted)
+    // indices of the empty slots
+    thrust::device_ptr<size_type> end = thrust::remove_if(
+        thrust::device_pointer_cast(vacancies.device_pointers().data()),
+        thrust::device_pointer_cast(vacancies.device_pointers().data()
+                                    + vacancies.size()),
+        is_alive(num_tracks));
 
-    // Sort the indices of the empty slots
-    thrust::sort(vacancies.begin(), vacancies.end());
+    // Resize the vector of vacancies to be equal to the number of empty slots
+    vacancies.resize(thrust::raw_pointer_cast(end)
+                     - vacancies.device_pointers().data());
 }
 
 //---------------------------------------------------------------------------//
 /*!
  * Count the number of secondaries that survived cutoffs for each interaction.
  */
-void count_secondaries(span<const Interaction>   interactions,
-                       device_vector<size_type>& num_secondaries)
+void count_secondaries(span<size_type>         secondary_count,
+                       span<const Interaction> interactions)
 {
-    // Resize and reset count
-    num_secondaries.resize(interactions.size());
-    thrust::fill(num_secondaries.begin(), num_secondaries.end(), 0);
+    REQUIRE(interactions.size() == secondary_count.size());
 
     KernelParamCalculator calc_launch_params;
     auto                  params = calc_launch_params(interactions.size());
     count_secondaries_kernel<<<params.grid_size, params.block_size>>>(
-        interactions, thrust::raw_pointer_cast(num_secondaries.data()));
+        secondary_count.data(), interactions);
 
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 }
@@ -251,56 +253,61 @@ void count_secondaries(span<const Interaction>   interactions,
 /*!
  * Create track initializers from primary particles
  */
-void primary_initializers(span<const Primary>    primaries,
-                          TrackInitializerStore& storage)
+void create_from_primaries(span<const Primary>    primaries,
+                           TrackInitializerStore& initializers)
 {
-    REQUIRE(primaries.size() <= storage.capacity() - storage.get_size());
+    REQUIRE(primaries.size() <= initializers.capacity() - initializers.size());
 
     KernelParamCalculator calc_launch_params;
     auto                  params = calc_launch_params(primaries.size());
-    primary_initializers_kernel<<<params.grid_size, params.block_size>>>(
-        primaries, storage.device_pointers());
+    create_from_primaries_kernel<<<params.grid_size, params.block_size>>>(
+        primaries, initializers.device_pointers());
 
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 
     // Resize the vector of track initializers
-    storage.resize(storage.get_size() + primaries.size());
+    initializers.resize(initializers.size() + primaries.size());
 }
 
 //---------------------------------------------------------------------------//
 /*!
  * Create track initializers from secondary particles
  */
-void secondary_initializers(device_vector<size_type>& num_secondaries,
-                            span<const Interaction>   interactions,
-                            TrackInitializerStore&    storage)
+void create_from_secondaries(span<size_type>         secondary_count,
+                             span<const Interaction> interactions,
+                             TrackInitializerStore&  initializers)
 {
-    REQUIRE(interactions.size() == num_secondaries.size());
+    REQUIRE(secondary_count.size() == interactions.size());
+
+    // Sum the total number secondaries produced in all interactions
+    size_type num_secondaries
+        = thrust::reduce(thrust::device_pointer_cast(secondary_count.data()),
+                         thrust::device_pointer_cast(secondary_count.data())
+                             + secondary_count.size(),
+                         0,
+                         thrust::plus<size_type>());
+
+    REQUIRE(num_secondaries <= initializers.capacity() - initializers.size());
 
     // The exclusive prefix sum of the number of secondaries produced in each
     // interaction is used to get the starting index in the vector of track
     // initializers for creating initializers from secondaries from an
     // interaction
-    size_type count = num_secondaries.back();
-    thrust::exclusive_scan(num_secondaries.begin(),
-                           num_secondaries.end(),
-                           num_secondaries.begin(),
+    thrust::exclusive_scan(thrust::device_pointer_cast(secondary_count.data()),
+                           thrust::device_pointer_cast(secondary_count.data())
+                               + secondary_count.size(),
+                           secondary_count.data(),
                            0);
-    count += num_secondaries.back();
-
-    REQUIRE(count <= storage.capacity() - storage.get_size());
 
     KernelParamCalculator calc_launch_params;
     auto                  params = calc_launch_params(interactions.size());
-    secondary_initializers_kernel<<<params.grid_size, params.block_size>>>(
-        thrust::raw_pointer_cast(num_secondaries.data()),
-        interactions,
-        storage.device_pointers());
+    create_from_secondaries_kernel<<<params.grid_size, params.block_size>>>(
+        secondary_count.data(), interactions, initializers.device_pointers());
 
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 
     // Resize the vector of track initializers
-    storage.resize(storage.get_size() + count);
+    initializers.resize(initializers.size() + num_secondaries);
 }
 
 //---------------------------------------------------------------------------//

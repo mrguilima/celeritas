@@ -3,31 +3,29 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file TrackInitializerStore.hh
+//! \file VacancyStore.hh
 //---------------------------------------------------------------------------//
 #pragma once
 
 #include "base/DeviceVector.hh"
-#include "TrackInitializer.hh"
 
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Manage device data for track initializers.
+ * Manage device data for vacancies.
  */
-class TrackInitializerStore
+class VacancyStore
 {
   public:
     //@{
     //! Type aliases
-    using Span = span<TrackInitializer>;
+    using Span = span<size_type>;
     //@}
 
   public:
-    // Construct with the maximum number of track initializers to store on
-    // device
-    TrackInitializerStore(size_type capacity);
+    // Construct with the maximum number of indices to store on device
+    VacancyStore(size_type capacity);
 
     // Get the number of elements
     size_type capacity() const { return allocation_.size(); }
@@ -42,8 +40,8 @@ class TrackInitializerStore
     Span device_pointers();
 
   private:
-    DeviceVector<TrackInitializer> allocation_;
-    size_type                      size_;
+    DeviceVector<size_type> allocation_;
+    size_type               size_;
 };
 
 //---------------------------------------------------------------------------//

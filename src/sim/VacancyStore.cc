@@ -3,9 +3,9 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file TrackInitializerStore.cc
+//! \file VacancyStore.cc
 //---------------------------------------------------------------------------//
-#include "TrackInitializerStore.hh"
+#include "VacancyStore.hh"
 
 #include "base/Assert.hh"
 
@@ -15,7 +15,7 @@ namespace celeritas
 /*!
  * Construct with the maximum number of elements to allocate on device.
  */
-TrackInitializerStore::TrackInitializerStore(size_type capacity)
+VacancyStore::VacancyStore(size_type capacity)
     : allocation_(capacity), size_(0)
 {
     REQUIRE(capacity > 0);
@@ -25,7 +25,7 @@ TrackInitializerStore::TrackInitializerStore(size_type capacity)
 /*!
  * Get a view to the managed data.
  */
-auto TrackInitializerStore::device_pointers() -> Span
+auto VacancyStore::device_pointers() -> Span
 {
     return {allocation_.device_pointers().data(), this->size()};
 }

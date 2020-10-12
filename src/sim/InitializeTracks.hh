@@ -9,26 +9,36 @@
 
 #include "TrackInitializer.hh"
 #include "TrackInitializerStore.hh"
-#include "base/Span.hh"
+#include "VacancyStore.hh"
 #include "base/KernelParamCalculator.cuda.hh"
+#include "base/Span.hh"
 #include "physics/base/Interaction.hh"
 #include "physics/base/Primary.hh"
 #include "physics/base/ParticleStatePointers.hh"
 #include "physics/base/ParticleParamsPointers.hh"
 #include "geometry/GeoStatePointers.hh"
 #include "geometry/GeoParamsPointers.hh"
-#include "thrust/device_vector.h"
 
 namespace celeritas
 {
-using thrust::device_vector;
+//---------------------------------------------------------------------------//
+// Predicate used to check whether the track at a given index in the track
+// vector is alive
+struct is_alive
+{
+    size_type flag;
+
+    is_alive(size_type flag) : flag(flag){};
+
+    CELER_FUNCTION bool operator()(const size_type x) { return x == flag; }
+};
 
 //---------------------------------------------------------------------------//
 // Initialize the track states on device.
-void initialize_tracks(device_vector<unsigned long long int>& vacancies,
-                       TrackInitializerStore&                 storage,
-                       // const SimParamsPointers                sparams,
-                       // const SimStatePointers                 sstates,
+void initialize_tracks(VacancyStore&          vacancies,
+                       TrackInitializerStore& initializers,
+                       // const SimParamsPointers      sparams,
+                       // const SimStatePointers       sstates,
                        const ParticleParamsPointers pparams,
                        const ParticleStatePointers  pstates,
                        const GeoParamsPointers      gparams,
@@ -36,25 +46,23 @@ void initialize_tracks(device_vector<unsigned long long int>& vacancies,
 
 //---------------------------------------------------------------------------//
 // Find empty slots in the vector of track states
-void find_vacancies(span<const Interaction>                interactions,
-                    device_vector<unsigned long long int>& num_vacancies,
-                    device_vector<unsigned long long int>& vacancies);
-
+void find_vacancies(VacancyStore&           vacancies,
+                    span<const Interaction> interactions);
 //---------------------------------------------------------------------------//
 // Count the number of secondaries that survived cutoffs for each interaction.
-void count_secondaries(span<const Interaction>   interactions,
-                       device_vector<size_type>& num_secondaries);
+void count_secondaries(span<size_type>         secondary_count,
+                       span<const Interaction> interactions);
 
 //---------------------------------------------------------------------------//
 // Create track initializers on device from primary particles
-void primary_initializers(span<const Primary>    primaries,
-                          TrackInitializerStore& storage);
+void create_from_primaries(span<const Primary>    primaries,
+                           TrackInitializerStore& initializers);
 
 //---------------------------------------------------------------------------//
 // Create track initializers on device from secondary particles
-void secondary_initializers(device_vector<size_type>& num_secondaries,
-                            span<const Interaction>   interactions,
-                            TrackInitializerStore&    storage);
+void create_from_secondaries(span<size_type>         secondary_count,
+                             span<const Interaction> interactions,
+                             TrackInitializerStore&  initializers);
 
 //---------------------------------------------------------------------------//
 } // namespace celeritas

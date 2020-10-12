@@ -33,6 +33,7 @@ list(APPEND SOURCES
   physics/base/ParticleStateStore.cc
   physics/base/SecondaryAllocatorStore.cc
   sim/TrackInitializerStore.cc
+  sim/VacancyStore.cc
 )
 
 if(CELERITAS_USE_CUDA)
