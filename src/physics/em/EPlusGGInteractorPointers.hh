@@ -22,12 +22,12 @@ struct EPlusGGInteractorPointers
     ParticleDefId electron_id;
     //! ID of a gamma
     ParticleDefId gamma_id;
-    // XXX additional data
-
+    //! electron mass [MevMass]
+    real_type electron_mass;
     //! Check whether the data is assigned
     explicit inline CELER_FUNCTION operator bool() const
     {
-        return electron_id && gamma_id; // XXX
+        return electron_id && gamma_id && electron_mass > 0;
     }
 };
 
