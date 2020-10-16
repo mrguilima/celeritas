@@ -21,6 +21,8 @@
 #include <G4Material.hh>
 #include <G4MaterialTable.hh>
 
+#include <G4UnitsTable.hh>
+
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -33,9 +35,9 @@
 #include "io/GeantPhysicsTable.hh"
 #include "io/GeantGeometryMap.hh"
 
+using namespace geant_exporter;
 using celeritas::GeantGeometryMap;
 using celeritas::GeantParticle;
-using namespace geant_exporter;
 using std::cout;
 using std::endl;
 
@@ -201,22 +203,35 @@ void store_geometry(TFile*                             root_file,
         auto g4material_cuts = g4production_cuts->GetMaterialCutsCouple(i);
         auto g4material      = g4material_cuts->GetMaterial();
 
-        material.name    = g4material->GetName();
-        material.density = g4material->GetDensity() / (g / cm3);
+        material.name             = g4material->GetName();
+        material.density          = g4material->GetDensity() / (g / cm3);
+        material.electron_density = g4material->GetTotNbOfElectPerVolume()
+                                    / (1. / cm3);
+        material.atomic_density = g4material->GetTotNbOfAtomsPerVolume()
+                                  / (1. / cm3);
+        material.radiation_length   = g4material->GetRadlen() / (g / cm2);
+        material.nuclear_int_length = g4material->GetNuclearInterLength()
+                                      / (g / cm2);
 
         auto g4elements = g4material->GetElementVector();
 
         for (size_type j = 0; j < g4elements->size(); j++)
         {
+            auto g4element = g4elements->at(j);
+
             GeantElement element;
-            element.name        = g4elements->at(j)->GetName();
-            element.fraction    = g4material->GetFractionVector()[j];
-            element.z           = g4elements->at(j)->GetZ();
-            element.atomic_mass = g4elements->at(j)->GetAtomicMassAmu();
+            element.name           = g4element->GetName();
+            element.atomic_number  = g4element->GetZ();
+            element.atomic_mass    = g4element->GetAtomicMassAmu();
+            element.atomic_density = g4material->GetVecNbOfAtomsPerVolume()[j]
+                                     / (1. / cm3);
+            element.fraction              = g4material->GetFractionVector()[j];
+            element.radiation_length_tsai = g4element->GetfRadTsai()
+                                            / (g / cm2);
+            element.coulomb_factor = g4element->GetfCoulomb();
 
             material.elements.push_back(element);
         }
-
         geometry.add_material(g4material_cuts->GetIndex(), material);
     }
 

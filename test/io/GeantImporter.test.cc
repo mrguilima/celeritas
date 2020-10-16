@@ -153,7 +153,7 @@ TEST_F(GeantImporterTest, import_geometry)
     {
         EXPECT_EQ(material.elements.at(i).name, elements_name[i]);
         EXPECT_SOFT_EQ(material.elements.at(i).fraction, fraction[i]);
-        EXPECT_EQ(material.elements.at(i).z, z_number[i]);
+        EXPECT_EQ(material.elements.at(i).atomic_number, z_number[i]);
         EXPECT_SOFT_EQ(material.elements.at(i).atomic_mass, atomic_mass[i]);
     }
 }
