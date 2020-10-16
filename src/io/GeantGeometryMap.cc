@@ -18,17 +18,6 @@ GeantGeometryMap::~GeantGeometryMap() = default;
 
 //---------------------------------------------------------------------------//
 /*!
- * Return the GeantMaterial associated with the mat_id
- */
-GeantMaterial GeantGeometryMap::get_material(mat_id& material_id)
-{
-    auto iter = matid_to_material_.find(material_id);
-    REQUIRE(iter != matid_to_material_.end());
-    return iter->second;
-}
-
-//---------------------------------------------------------------------------//
-/*!
  * Return the mat_id for a given vol_id
  */
 GeantGeometryMap::mat_id GeantGeometryMap::get_matid(vol_id& volume_id)
@@ -46,6 +35,27 @@ GeantVolume GeantGeometryMap::get_volume(vol_id& volume_id)
 {
     auto iter = volid_to_volume_.find(volume_id);
     REQUIRE(iter != volid_to_volume_.end());
+    return iter->second;
+}
+
+//---------------------------------------------------------------------------//
+/*!
+ * Return the GeantMaterial associated with the mat_id
+ */
+GeantMaterial GeantGeometryMap::get_material(mat_id& material_id)
+{
+    auto iter = matid_to_material_.find(material_id);
+    REQUIRE(iter != matid_to_material_.end());
+    return iter->second;
+}
+//---------------------------------------------------------------------------//
+/*!
+ * Return the GeantElement associated with the elem_id
+ */
+GeantElement GeantGeometryMap::get_element(elem_id& element_id)
+{
+    auto iter = elemid_to_element_.find(element_id);
+    REQUIRE(iter != elemid_to_element_.end());
     return iter->second;
 }
 
@@ -75,6 +85,14 @@ void GeantGeometryMap::add_material(mat_id id, GeantMaterial material)
 void GeantGeometryMap::add_volume(vol_id id, GeantVolume volume)
 {
     volid_to_volume_.insert(std::pair<vol_id, GeantVolume>(id, volume));
+}
+//---------------------------------------------------------------------------//
+/*!
+ * Add pair <elem_id, element> to the elemid_to_element_ map
+ */
+void GeantGeometryMap::add_element(elem_id id, GeantElement element)
+{
+    elemid_to_element_.insert(std::pair<elem_id, GeantElement>(id, element));
 }
 
 //---------------------------------------------------------------------------//

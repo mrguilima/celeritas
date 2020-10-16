@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "GeantElement.hh"
+#include "GeantGeometryMap.hh"
 #include "base/Types.hh"
 
 namespace celeritas
@@ -26,15 +27,26 @@ namespace celeritas
  * this struct, add the aproppriate variables here and fetch the new values in
  * \c app/geant-exporter.cc : store_geometry(...)
  */
+enum class MaterialState
+{
+    not_defined,
+    solid,
+    liquid,
+    gas
+};
+
 struct GeantMaterial
 {
-    std::string               name;
-    real_type                 density;            // [g/cm^3]
-    real_type                 electron_density;   // [1/cm^3]
-    real_type                 atomic_density;     // [1/cm^3]
-    real_type                 radiation_length;   // [g/cm^2]
-    real_type                 nuclear_int_length; // [g/cm^2]
-    std::vector<GeantElement> elements;
+    std::string              name;
+    MaterialState            state;
+    real_type                temperature;        // [K]
+    real_type                density;            // [g/cm^3]
+    real_type                electron_density;   // [1/cm^3]
+    real_type                atomic_density;     // [1/cm^3]
+    real_type                radiation_length;   // [g/cm^2]
+    real_type                nuclear_int_length; // [g/cm^2]
+    std::vector<int>         elements;
+    std::map<int, real_type> fractions;
 };
 
 //---------------------------------------------------------------------------//

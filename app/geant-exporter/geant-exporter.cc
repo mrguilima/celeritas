@@ -199,11 +199,16 @@ void store_geometry(TFile*                             root_file,
     // Loop over materials and elements
     for (size_type i = 0; i < g4production_cuts->GetTableSize(); i++)
     {
-        GeantMaterial material;
+        // Fetch material and element list
         auto g4material_cuts = g4production_cuts->GetMaterialCutsCouple(i);
         auto g4material      = g4material_cuts->GetMaterial();
+        auto g4elements      = g4material->GetElementVector();
 
+        // Populate material information
+        GeantMaterial material;
         material.name             = g4material->GetName();
+        material.state            = (MaterialState)g4material->GetState();
+        material.temperature      = g4material->GetTemperature();
         material.density          = g4material->GetDensity() / (g / cm3);
         material.electron_density = g4material->GetTotNbOfElectPerVolume()
                                     / (1. / cm3);
@@ -213,24 +218,29 @@ void store_geometry(TFile*                             root_file,
         material.nuclear_int_length = g4material->GetNuclearInterLength()
                                       / (g / cm2);
 
-        auto g4elements = g4material->GetElementVector();
-
+        // Populate element information
         for (size_type j = 0; j < g4elements->size(); j++)
         {
             auto g4element = g4elements->at(j);
 
             GeantElement element;
-            element.name           = g4element->GetName();
-            element.atomic_number  = g4element->GetZ();
-            element.atomic_mass    = g4element->GetAtomicMassAmu();
-            element.atomic_density = g4material->GetVecNbOfAtomsPerVolume()[j]
-                                     / (1. / cm3);
-            element.fraction              = g4material->GetFractionVector()[j];
+            element.name                  = g4element->GetName();
+            element.atomic_number         = g4element->GetZ();
+            element.atomic_mass           = g4element->GetAtomicMassAmu();
             element.radiation_length_tsai = g4element->GetfRadTsai()
                                             / (g / cm2);
             element.coulomb_factor = g4element->GetfCoulomb();
 
-            material.elements.push_back(element);
+            GeantGeometryMap::elem_id elid = g4element->GetIndex();
+            real_type frac = g4material->GetFractionVector()[j];
+
+            // Add element to the global list
+            geometry.add_element(elid, element);
+
+            // Connect global element to a given material
+            material.elements.push_back(elid);
+            material.fractions.insert(
+                std::pair<GeantGeometryMap::elem_id, real_type>(elid, frac));
         }
         geometry.add_material(g4material_cuts->GetIndex(), material);
     }

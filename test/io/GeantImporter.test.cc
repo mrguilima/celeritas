@@ -151,9 +151,13 @@ TEST_F(GeantImporterTest, import_geometry)
 
     for (size_t i = 0; i < 4; i++)
     {
-        EXPECT_EQ(material.elements.at(i).name, elements_name[i]);
-        EXPECT_SOFT_EQ(material.elements.at(i).fraction, fraction[i]);
-        EXPECT_EQ(material.elements.at(i).atomic_number, z_number[i]);
-        EXPECT_SOFT_EQ(material.elements.at(i).atomic_mass, atomic_mass[i]);
+        auto elid         = material.elements.at(i);
+        auto element      = data.geometry->get_element(elid);
+        auto fraction_map = material.fractions.find(elid);
+
+        EXPECT_EQ(element.name, elements_name[i]);
+        EXPECT_EQ(element.atomic_number, z_number[i]);
+        EXPECT_SOFT_EQ(element.atomic_mass, atomic_mass[i]);
+        EXPECT_SOFT_EQ(fraction_map->second, fraction[i]);
     }
 }

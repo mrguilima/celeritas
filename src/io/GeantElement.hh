@@ -27,9 +27,7 @@ struct GeantElement
 {
     std::string name;
     int         atomic_number;
-    real_type   atomic_mass;    // [atomic mass unit]
-    real_type   atomic_density; // [1/cm^3]
-    real_type   fraction;
+    real_type   atomic_mass;           // [atomic mass unit]
     real_type   radiation_length_tsai; // [g/cm^2]
     real_type   coulomb_factor;
 };
