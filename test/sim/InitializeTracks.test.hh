@@ -26,13 +26,13 @@ using namespace celeritas;
 //! Interactor
 struct Interactor
 {
-    __device__ Interactor(const ParticleTrackView& particle,
-                          SecondaryAllocatorView&  allocate_secondaries)
+    CELER_FUNCTION Interactor(const ParticleTrackView& particle,
+                              SecondaryAllocatorView&  allocate_secondaries)
         : energy(particle.energy()), allocate_secondaries(allocate_secondaries)
     {
     }
 
-    __device__ Interaction operator()()
+    CELER_FUNCTION Interaction operator()()
     {
         // Create secondary particles
         unsigned long int alloc_size = 4;

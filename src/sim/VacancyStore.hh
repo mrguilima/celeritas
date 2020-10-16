@@ -25,7 +25,7 @@ class VacancyStore
 
   public:
     // Construct with the maximum number of indices to store on device
-    VacancyStore(size_type capacity);
+    explicit VacancyStore(size_type capacity);
 
     // Get the number of elements
     size_type capacity() const { return allocation_.size(); }
@@ -34,7 +34,7 @@ class VacancyStore
     size_type size() const { return size_; }
 
     // Change the size (without changing capacity)
-    void resize(size_type size) { size_ = size; }
+    void resize(size_type size);
 
     // Get a view to the managed data
     Span device_pointers();

@@ -23,6 +23,16 @@ VacancyStore::VacancyStore(size_type capacity)
 
 //---------------------------------------------------------------------------//
 /*!
+ * Change the size (without changing capacity)
+ */
+void VacancyStore::resize(size_type size)
+{
+    REQUIRE(size <= this->capacity());
+    size_ = size;
+}
+
+//---------------------------------------------------------------------------//
+/*!
  * Get a view to the managed data.
  */
 auto VacancyStore::device_pointers() -> Span

@@ -23,6 +23,16 @@ TrackInitializerStore::TrackInitializerStore(size_type capacity)
 
 //---------------------------------------------------------------------------//
 /*!
+ * Change the size (without changing capacity)
+ */
+void TrackInitializerStore::resize(size_type size)
+{
+    REQUIRE(size <= this->capacity());
+    size_ = size;
+}
+
+//---------------------------------------------------------------------------//
+/*!
  * Get a view to the managed data.
  */
 auto TrackInitializerStore::device_pointers() -> Span

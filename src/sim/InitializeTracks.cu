@@ -28,8 +28,7 @@ namespace celeritas
  * TODO: Add sim states
  */
 __global__ void
-initialize_tracks_kernel(size_type                    num_tracks,
-                         const span<size_type>        vacancies,
+initialize_tracks_kernel(const span<const size_type>  vacancies,
                          const span<TrackInitializer> initializers,
                          const ParticleParamsPointers pparams,
                          const ParticleStatePointers  pstates,
@@ -37,14 +36,14 @@ initialize_tracks_kernel(size_type                    num_tracks,
                          const GeoStatePointers       gstates)
 {
     auto thread_id = KernelParamCalculator::thread_id().get();
-    if (thread_id < num_tracks)
+    if (thread_id < vacancies.size())
     {
         // Get the track initializer, starting from the back of the vector
         size_type               init_id = initializers.size() - thread_id - 1;
-        const TrackInitializer& init    = initializers.data()[init_id];
+        const TrackInitializer& init    = initializers[init_id];
 
         // Index of the empty slot to create the new track in
-        size_type slot_id = vacancies.data()[thread_id];
+        size_type slot_id = vacancies[thread_id];
 
         // Initialize particle physics data
         ParticleTrackView particle(pparams, pstates, ThreadId(slot_id));
@@ -72,12 +71,12 @@ __global__ void find_vacancies_kernel(span<size_type>         vacancies,
         // initializing new particles
         if (action_killed(result.action))
         {
-            vacancies.data()[thread_id] = thread_id;
+            vacancies[thread_id] = thread_id;
         }
         else
         {
             // Flag as a track that's still alive
-            vacancies.data()[thread_id] = interactions.size();
+            vacancies[thread_id] = interactions.size();
         }
     }
 }
@@ -96,7 +95,7 @@ __global__ void count_secondaries_kernel(size_type* secondary_count,
         const Interaction& result = interactions[thread_id];
 
         // Count how many secondaries survived cutoffs for each track
-        for (auto secondary : result.secondaries)
+        for (const auto& secondary : result.secondaries)
         {
             if (secondary.energy.value() > 0)
             {
@@ -118,7 +117,7 @@ create_from_primaries_kernel(span<const Primary>    primaries,
     if (thread_id < primaries.size())
     {
         size_type         offset_id = initializers.size();
-        TrackInitializer& init = initializers.data()[offset_id + thread_id];
+        TrackInitializer& init      = initializers[offset_id + thread_id];
 
         // Create a new track initializer from a primary particle
         init = primaries[thread_id];
@@ -142,15 +141,15 @@ create_from_secondaries_kernel(size_type*              cum_secondaries,
         // Starting index in the vector of track initializers
         size_type index = cum_secondaries[thread_id];
 
-        for (auto secondary : result.secondaries)
+        for (const auto& secondary : result.secondaries)
         {
             // If the secondary survived cutoffs
             if (secondary.energy.value() > 0)
             {
-                // TODO: right now only copying energy
-                TrackInitializer& init = initializers.data()[index];
-                init.particle.energy   = secondary.energy;
-                ++index;
+                TrackInitializer& init = initializers[index++];
+
+                // Create a new track initializer from a secondary
+                init = secondary;
             }
         }
     }
@@ -178,7 +177,6 @@ void initialize_tracks(VacancyStore&          vacancies,
     KernelParamCalculator calc_launch_params;
     auto                  params = calc_launch_params(num_tracks);
     initialize_tracks_kernel<<<params.grid_size, params.block_size>>>(
-        num_tracks,
         vacancies.device_pointers(),
         initializers.device_pointers(),
         pparams,

@@ -5,12 +5,12 @@
 //---------------------------------------------------------------------------//
 //! \file InitializeTracks.test.cc
 //---------------------------------------------------------------------------//
-#include "InitializeTracks.test.hh"
+#include "sim/InitializeTracks.hh"
 
 #include "physics/base/SecondaryAllocatorStore.hh"
 #include "gtest/Main.hh"
 #include "gtest/Test.hh"
-#include "sim/InitializeTracks.hh"
+#include "InitializeTracks.test.hh"
 
 namespace celeritas_test
 {

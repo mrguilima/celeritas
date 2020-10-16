@@ -5,12 +5,12 @@
 //---------------------------------------------------------------------------//
 //! \file InitializeTracks.test.cu
 //---------------------------------------------------------------------------//
+#include "sim/InitializeTracks.hh"
 #include "InitializeTracks.test.hh"
 
 #include <thrust/copy.h>
 #include <thrust/device_vector.h>
 #include "base/KernelParamCalculator.cuda.hh"
-#include "sim/InitializeTracks.hh"
 
 namespace celeritas_test
 {

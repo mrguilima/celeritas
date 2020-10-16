@@ -8,7 +8,9 @@
 #pragma once
 
 #include "Types.hh"
+#include "physics/base/Interaction.hh"
 #include "physics/base/Primary.hh"
+#include "physics/base/Secondary.hh"
 // XXX Consider moving initializer_t to a traits class for each "state" thing
 #include "physics/base/ParticleTrackView.hh"
 #include "geometry/GeoTrackView.hh"
@@ -38,13 +40,25 @@ struct TrackInitializer
     ParticleTrackView::Initializer_t particle;
 
     // Initialize from a primary particle
-    __device__ TrackInitializer& operator=(const Primary& primary)
+    CELER_FUNCTION TrackInitializer& operator=(const Primary& primary)
     {
         particle.def_id = primary.def_id;
         particle.energy = primary.energy;
         geo.dir         = primary.direction;
         geo.pos         = primary.position;
         sim.event_id    = primary.event_id;
+        return *this;
+    }
+
+    // Initialize from a secondary particle
+    CELER_FUNCTION TrackInitializer& operator=(const Secondary& secondary)
+    {
+        particle.def_id = secondary.def_id;
+        particle.energy = secondary.energy;
+        geo.dir         = secondary.direction;
+        // TODO: Get the position and event id from somewhere
+        // geo.pos         = secondary.position;
+        // sim.event_id    = secondary.event_id;
         return *this;
     }
 };
