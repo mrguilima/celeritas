@@ -3,7 +3,7 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file TrackInit.hh
+//! \file InitializeTracks.hh
 //---------------------------------------------------------------------------//
 #pragma once
 
@@ -24,14 +24,22 @@ namespace celeritas
 //---------------------------------------------------------------------------//
 // Predicate used to check whether the track at a given index in the track
 // vector is alive
-struct is_alive
+struct is_not_vacant
 {
     size_type flag;
 
-    is_alive(size_type flag) : flag(flag){};
+    is_not_vacant(size_type flag) : flag(flag){};
 
     CELER_FUNCTION bool operator()(const size_type x) { return x == flag; }
 };
+
+//---------------------------------------------------------------------------//
+// Mark a track state as not vacant, i.e., not available to initialize a new
+// track in
+CELER_CONSTEXPR_FUNCTION size_type occupied_flag()
+{
+    return numeric_limits<size_type>::max();
+}
 
 //---------------------------------------------------------------------------//
 // Initialize the track states on device.

@@ -76,7 +76,7 @@ __global__ void find_vacancies_kernel(span<size_type>         vacancies,
         else
         {
             // Flag as a track that's still alive
-            vacancies[thread_id] = interactions.size();
+            vacancies[thread_id] = occupied_flag();
         }
     }
 }
@@ -215,7 +215,7 @@ void find_vacancies(VacancyStore&           vacancies,
         thrust::device_pointer_cast(vacancies.device_pointers().data()),
         thrust::device_pointer_cast(vacancies.device_pointers().data()
                                     + vacancies.size()),
-        is_alive(num_tracks));
+        is_not_vacant(occupied_flag()));
 
     // Resize the vector of vacancies to be equal to the number of empty slots
     vacancies.resize(thrust::raw_pointer_cast(end)
