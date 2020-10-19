@@ -27,15 +27,19 @@ class GeantModelTest : public celeritas::Test
 //---------------------------------------------------------------------------//
 TEST_F(GeantModelTest, full_test)
 {
+    // Test default constructor
     GeantModel model1;
     EXPECT_EQ(model1, GeantModel::not_defined);
 
+    // Test operator()
     model1("Klein-Nishina");
     EXPECT_EQ(model1, GeantModel::KleinNishina);
 
+    // Test constructor with string input
     GeantModel model2("not_defined");
     EXPECT_EQ(model2, GeantModel::not_defined);
 
+    // Test constructor with enum input
     GeantModel model3(GeantModel::KleinNishina);
     EXPECT_EQ(model3, GeantModel::KleinNishina);
 }

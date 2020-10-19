@@ -45,7 +45,7 @@ GeantImporter::result_type GeantImporter::operator()()
     result_type geant_data;
     geant_data.particle_params = this->load_particle_data();
     geant_data.physics_tables  = this->load_physics_table_data();
-    geant_data.geometry        = this->load_material_data();
+    geant_data.geometry        = this->load_geometry_data();
 
     ENSURE(geant_data.particle_params);
     ENSURE(geant_data.physics_tables);
@@ -140,20 +140,23 @@ GeantImporter::load_physics_table_data()
 }
 //---------------------------------------------------------------------------//
 /*!
- * Load GeantGeometryMap info
+ * Load GeantGeometryMap from the ROOT file
  */
-std::shared_ptr<GeantGeometryMap> GeantImporter::load_material_data()
+std::shared_ptr<GeantGeometryMap> GeantImporter::load_geometry_data()
 {
     // Open geometry branch
     std::unique_ptr<TTree> tree_geometry(root_input_->Get<TTree>("geometry"));
     CHECK(tree_geometry);
     CHECK(tree_geometry->GetEntries()); // Must be 1
 
-    // Load branch and material data
+    // Load branch and fetch data
     GeantGeometryMap  geometry;
     GeantGeometryMap* geometry_ptr = &geometry;
     tree_geometry->SetBranchAddress("GeantGeometryMap", &geometry_ptr);
     tree_geometry->GetEntry(0);
+
+    // The info from the GeantGeometryMap will be used by a class that will be
+    // constructed on the host and will manage host/device data
 
     return std::make_shared<GeantGeometryMap>(std::move(geometry));
 }

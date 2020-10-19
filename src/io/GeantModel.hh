@@ -24,9 +24,6 @@ namespace celeritas
  *  if (model.get() == GeantModel::KleinNishina) { ... }
  * \endcode
  *
- * Only reason for this wrapper is to retrieve Geant4 physics tables. Otherwise
- * it would have been a simple enum.
- *
  * FOR REVIEW: The enum keeps the Geant4 names, not following Celeritas code
  * standards.
  */

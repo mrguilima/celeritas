@@ -21,8 +21,6 @@
 #include <G4Material.hh>
 #include <G4MaterialTable.hh>
 
-#include <G4UnitsTable.hh>
-
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -148,7 +146,6 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
  */
 void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
 {
-    // Add current logical volume
     GeantVolume              volume;
     GeantGeometryMap::vol_id volume_id;
     GeantGeometryMap::mat_id material_id;
@@ -157,7 +154,10 @@ void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
     volume_id   = logical_volume->GetInstanceID();
     material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
 
+    // Add volume to the global volume map
     geometry.add_volume(volume_id, volume);
+
+    // Map volume to its material
     geometry.link_volume_material(volume_id, material_id);
 
     // Check for daughter volumes
@@ -192,7 +192,7 @@ void store_geometry(TFile*                             root_file,
 
     TTree tree_materials("geometry", "geometry");
 
-    // Create material table and ROOT branch
+    // Create geometry map and ROOT branch
     GeantGeometryMap geometry;
     tree_materials.Branch("GeantGeometryMap", &geometry);
 
@@ -214,9 +214,8 @@ void store_geometry(TFile*                             root_file,
                                     / (1. / cm3);
         material.atomic_density = g4material->GetTotNbOfAtomsPerVolume()
                                   / (1. / cm3);
-        material.radiation_length   = g4material->GetRadlen() / (g / cm2);
-        material.nuclear_int_length = g4material->GetNuclearInterLength()
-                                      / (g / cm2);
+        material.radiation_length   = g4material->GetRadlen() / cm;
+        material.nuclear_int_length = g4material->GetNuclearInterLength() / cm;
 
         // Populate element information
         for (size_type j = 0; j < g4elements->size(); j++)
@@ -227,14 +226,13 @@ void store_geometry(TFile*                             root_file,
             element.name                  = g4element->GetName();
             element.atomic_number         = g4element->GetZ();
             element.atomic_mass           = g4element->GetAtomicMassAmu();
-            element.radiation_length_tsai = g4element->GetfRadTsai()
-                                            / (g / cm2);
-            element.coulomb_factor = g4element->GetfCoulomb();
+            element.radiation_length_tsai = g4element->GetfRadTsai() / cm;
+            element.coulomb_factor        = g4element->GetfCoulomb();
 
             GeantGeometryMap::elem_id elid = g4element->GetIndex();
             real_type frac = g4material->GetFractionVector()[j];
 
-            // Add element to the global list
+            // Add element to the global element map
             geometry.add_element(elid, element);
 
             // Connect global element to a given material
@@ -242,6 +240,7 @@ void store_geometry(TFile*                             root_file,
             material.fractions.insert(
                 std::pair<GeantGeometryMap::elem_id, real_type>(elid, frac));
         }
+        // Add material to the global material map
         geometry.add_material(g4material_cuts->GetIndex(), material);
     }
 
@@ -274,13 +273,14 @@ int main(int argc, char* argv[])
 
     G4RunManager run_manager;
 
-    // Initialize the geometry
+    // >>> Initialize the geometry
+
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
     // Copy G4VPhysicalVolume for future work before releasing detector ptr
     auto world_phys_volume = detector->get_world_volume();
     run_manager.SetUserInitialization(detector.release());
 
-    // Load the physics list
+    // >>> Load the physics list
 
     // User-defined physics list (see PhysicsList.hh)
     // auto physics_list = std::make_unique<PhysicsList>();
@@ -296,10 +296,9 @@ int main(int argc, char* argv[])
 
     run_manager.SetUserInitialization(physics_list.release());
 
-    // Run a single particle to generate the physics tables
+    // >>> Minimal run to generate the physics tables
     auto action_initialization = std::make_unique<ActionInitialization>();
     run_manager.SetUserInitialization(action_initialization.release());
-
     G4UImanager::GetUIpointer()->ApplyCommand("/run/initialize");
     run_manager.BeamOn(1);
 

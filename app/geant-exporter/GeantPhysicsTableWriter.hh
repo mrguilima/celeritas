@@ -6,10 +6,8 @@
 //! \file GeantPhysicsTableWriter.hh
 //! \brief Write Geant physics tables into a ROOT file
 //---------------------------------------------------------------------------//
-
 #pragma once
 
-// C++
 #include <iostream>
 #include <vector>
 #include <memory>

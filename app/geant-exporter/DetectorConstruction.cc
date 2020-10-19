@@ -5,10 +5,10 @@
 //---------------------------------------------------------------------------//
 //! \file DetectorConstruction.cc
 //---------------------------------------------------------------------------//
-#include "DetectorConstruction.hh"
 
 #include <G4GDMLParser.hh>
 
+#include "DetectorConstruction.hh"
 #include "base/Assert.hh"
 
 namespace geant_exporter
@@ -41,7 +41,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
 //---------------------------------------------------------------------------//
 /*!
- * Return the loaded world volume.
+ * Return the world physical volume shared pointer.
  */
 std::shared_ptr<G4VPhysicalVolume> DetectorConstruction::get_world_volume()
 {

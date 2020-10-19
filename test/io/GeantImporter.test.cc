@@ -36,6 +36,7 @@ using celeritas::GeantTableType;
 using celeritas::GeantGeometryMap;
 using celeritas::GeantMaterial;
 using celeritas::GeantVolume;
+using celeritas::MaterialState;
 
 //---------------------------------------------------------------------------//
 // TEST HARNESS
@@ -133,19 +134,25 @@ TEST_F(GeantImporterTest, import_geometry)
     EXPECT_EQ(volume.name, "TrackerPatchPannel");
 
     // Fetch respective mat_id and GeantMaterial from the given vol_id
-    GeantGeometryMap::mat_id matid    = data.geometry->get_matid(volid);
-    GeantMaterial            material = data.geometry->get_material(matid);
+    auto          matid    = data.geometry->get_matid(volid);
+    GeantMaterial material = data.geometry->get_material(matid);
 
     // Material
     EXPECT_EQ(matid, 31);
     EXPECT_EQ(material.name, "Air");
+    EXPECT_EQ(material.state, MaterialState::gas);
+    EXPECT_SOFT_EQ(material.temperature, 293.15);
     EXPECT_SOFT_EQ(material.density, 0.00121399936124299);
+    EXPECT_SOFT_EQ(material.electron_density, 3.6523656201748414e+20);
+    EXPECT_SOFT_EQ(material.atomic_density, 5.0756589772243755e+19);
+    EXPECT_SOFT_EQ(material.radiation_length, 30152.065419629631);
+    EXPECT_SOFT_EQ(material.nuclear_int_length, 70408.106699294673);
     EXPECT_EQ(material.elements.size(), 4);
 
     // Elements within material
     std::string elements_name[4] = {"N", "O", "Ar", "H"};
     real_type   fraction[4]      = {0.7494, 0.2369, 0.0129, 0.0008};
-    int         z_number[4]      = {7, 8, 18, 1};
+    int         atomic_number[4] = {7, 8, 18, 1};
     real_type   atomic_mass[4]
         = {14.00676896, 15.999390411, 39.94769335110001, 1.007940752665138};
 
@@ -156,7 +163,7 @@ TEST_F(GeantImporterTest, import_geometry)
         auto fraction_map = material.fractions.find(elid);
 
         EXPECT_EQ(element.name, elements_name[i]);
-        EXPECT_EQ(element.atomic_number, z_number[i]);
+        EXPECT_EQ(element.atomic_number, atomic_number[i]);
         EXPECT_SOFT_EQ(element.atomic_mass, atomic_mass[i]);
         EXPECT_SOFT_EQ(fraction_map->second, fraction[i]);
     }

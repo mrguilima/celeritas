@@ -30,7 +30,7 @@
 #include "io/GeantProcess.hh"
 #include "io/GeantPhysicsVectorType.hh"
 #include "io/GeantModel.hh"
-
+// For geant-exporter only
 #include "GeantPhysicsTableWriter.hh"
 
 //---------------------------------------------------------------------------//
@@ -335,8 +335,9 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable* table,
 
 //---------------------------------------------------------------------------//
 /*!
- * Call done after a G4PhysicsTable* has been assigned to finish writing the
- * remaining elements of this->table_ and fill the tables TTree
+ * To be called after a G4PhysicsTable* has been assigned.
+ * It finishes writing the remaining elements of this->table_ and fills the
+ * "tables" TTree.
  */
 void GeantPhysicsTableWriter::fill_tables_tree(G4PhysicsTable* table,
                                                std::string     table_type_name,

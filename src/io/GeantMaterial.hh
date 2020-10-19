@@ -25,8 +25,11 @@ namespace celeritas
  *
  * The data is exported via the app/geant-exporter. For further expanding
  * this struct, add the aproppriate variables here and fetch the new values in
- * \c app/geant-exporter.cc : store_geometry(...)
+ * \c app/geant-exporter.cc : store_geometry(...).
+ *
+ * Units are defined at export time in the aforementioned function.
  */
+
 enum class MaterialState
 {
     not_defined,
@@ -43,8 +46,8 @@ struct GeantMaterial
     real_type                density;            // [g/cm^3]
     real_type                electron_density;   // [1/cm^3]
     real_type                atomic_density;     // [1/cm^3]
-    real_type                radiation_length;   // [g/cm^2]
-    real_type                nuclear_int_length; // [g/cm^2]
+    real_type                radiation_length;   // [cm]
+    real_type                nuclear_int_length; // [cm]
     std::vector<int>         elements;
     std::map<int, real_type> fractions;
 };

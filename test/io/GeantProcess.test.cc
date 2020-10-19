@@ -27,15 +27,19 @@ class GeantProcessTest : public celeritas::Test
 //---------------------------------------------------------------------------//
 TEST_F(GeantProcessTest, full_test)
 {
+    // Test default constructor
     GeantProcess process1;
     EXPECT_EQ(process1, GeantProcess::not_defined);
 
+    // Test operator()
     process1("compt");
     EXPECT_EQ(process1, GeantProcess::compt);
 
+    // Test constructor with string input
     GeantProcess process2("not_defined");
     EXPECT_EQ(process2, GeantProcess::not_defined);
 
+    // Test constructor with enum input
     GeantProcess process3(GeantProcess::compt);
     EXPECT_EQ(process3, GeantProcess::compt);
 }

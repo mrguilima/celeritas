@@ -27,8 +27,8 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * GeantImporter loads particle and physics table data from the ROOT file
- * created by the app/geant-exporter external code.
+ * GeantImporter loads particle, physics table, material, and geometry
+ * data from the ROOT file created by the app/geant-exporter external code.
  *
  * Usage:
  * \code
@@ -42,7 +42,7 @@ namespace celeritas
  * See GeantImporter.test.cc for an example on how to fetch a given table.
  * This method will probably have to be improved.
  *
- * Material and volume information is stored in a GeantGeometryMap object.
+ * Material and volume information are stored in a GeantGeometryMap object.
  * The GeantGeometryMap::mat_id value returned from a given vol_id represents
  * the position of said material in the GeantPhysicsTable:
  * \c GeantPhysicsTable.physics_vectors.at(mat_id_value).
@@ -54,6 +54,7 @@ class GeantImporter
     {
         std::shared_ptr<ParticleParams>                 particle_params;
         std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
+        // Temporary. It will become something similar to ParticleParams
         std::shared_ptr<GeantGeometryMap>               geometry;
     };
 
@@ -73,7 +74,7 @@ class GeantImporter
     // Populate a vector of GeantPhysicsTable objects
     std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
     // Load the GeantGeometryMap and update the shared_ptr address
-    std::shared_ptr<GeantGeometryMap> load_material_data();
+    std::shared_ptr<GeantGeometryMap> load_geometry_data();
 
   public:
     std::unique_ptr<TFile> root_input_;

@@ -27,15 +27,19 @@ class GeantTableTypeTest : public celeritas::Test
 //---------------------------------------------------------------------------//
 TEST_F(GeantTableTypeTest, full_test)
 {
+    // Test default constructor
     GeantTableType table1;
     EXPECT_EQ(table1, GeantTableType::not_defined);
 
+    // Test operator()
     table1("Lambda");
     EXPECT_EQ(table1, GeantTableType::Lambda);
 
+    // Test constructor with string input
     GeantTableType table2("DEDX");
     EXPECT_EQ(table2, GeantTableType::DEDX);
 
+    // Test constructor with enum input
     GeantTableType table3(GeantTableType::Lambda);
     EXPECT_EQ(table3, GeantTableType::Lambda);
 }
