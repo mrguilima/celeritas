@@ -49,40 +49,34 @@ static constexpr double kB2C = -0.299792458e-3;
 //______________________________________________________________________________
 // Curvature for general field
 VECCORE_ATT_HOST_DEVICE
-double InFieldPropagator::curvature(const GeoTrackView &track) const
+double InFieldPropagator::curvature() const
 {
   ThreeVector_t magFld;
   double bmag = 0.0;
 
-  FieldLookup::get_field_value(track.pos(), magFld, bmag);
+  FieldLookup::get_field_value(track_.pos(), magFld, bmag);
 
-  return this->curvature(track, magFld, bmag);
-}
-
-// Needing a real implementation.
-real_type charge(const GeoTrackView &track)
-{
-  //return double(track.charge());
-  return 1.0;
+  return this->curvature(magFld, bmag);
 }
 
 //______________________________________________________________________________
 // Curvature for general field
 VECCORE_ATT_HOST_DEVICE
-double InFieldPropagator::curvature(const GeoTrackView &track,
-					  const ThreeVector_t &Bfield,
-					  double bmag) const
+double InFieldPropagator::curvature(const ThreeVector_t &Bfield,
+				    double bmag) const
 {
   assert(bmag > 0.0);
-  const double& pmag = track.momentum();
-  double plong = pmag * dot_product( track.dir(), Bfield) / bmag;
+  const double& pmag = particle_.momentum();
+  double plong = pmag * dot_product( track_.dir(), Bfield) / bmag;
   double pt    = sqrt(pmag * pmag - plong * plong);
-  return celeritas::constants::cLight * bmag / pt; // if bmag and pt are positive, no need to call fabs()
+  // if bmag and pt are positive, no need to call fabs() as in original code
+  //return celeritas::constants::cLight * bmag / pt;
+  return celeritas::units::speed_of_light * bmag / pt;
 }
 
 //______________________________________________________________________________
 VECCORE_ATT_HOST_DEVICE
-bool InFieldPropagator::operator()() const
+bool InFieldPropagator::operator()(real_type step) const
 {
   // Scalar geometry length computation. The track is moved into the output basket.
   using vecCore::math::Max;
@@ -91,6 +85,7 @@ bool InFieldPropagator::operator()() const
   // The minimum step is step_push in case the physics step limit is not smaller
   std::cout<<" FieldPropH: Propagate(): spot 1: pos="<< track_ <<"\n";
   double step_min = Min(track_.pstep(), step_push);
+
   // The track snext value is already the minimum between geometry and physics
   double step_geom_phys = Max(step_min, track_.snext());
   // Field step limit. We use the track sagitta to estimate the "bending" error,
@@ -148,9 +143,9 @@ bool InFieldPropagator::operator()() const
 
 //______________________________________________________________________________
 VECCORE_ATT_HOST_DEVICE
-void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
-                                                const ThreeVector_t &BfieldInitial,
-                                                double bmag) const
+void InFieldPropagator::propagate_in_volume(double crtstep,
+					    const ThreeVector_t &BfieldInitial,
+					    double bmag) const
 {
   // Single track propagation in a volume. The method is to be called
   // only with  charged tracks in magnetic field.The method decreases the fPstepV
@@ -163,14 +158,14 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
   // std::cout << "InFieldPropagator::PropagateInVolume called for 1 track" <<
   // std::endl;
 
-  std::cout<<" FieldPropH: Propagate(): spot 1: pos="<< track <<"\n";
+  std::cout<<" FieldPropH: Propagate(): spot 1: pos="<< track_ <<"\n";
   constexpr double toKiloGauss = 1.0 / units::kilogauss; // Converts to kilogauss
 
 // #if ENABLE_MORE_COMPLEX_FIELD
 //   bool useRungeKutta   = fPropagator->fConfig->fUseRungeKutta;
 //   auto fieldConfig     = FieldLookup::GetFieldConfig();
 //   auto fieldPropagator = fFieldPropagator;
-//   std::cout<<" FieldPropH: Propagate(): spot 1a: pos="<< track <<"\n";
+//   std::cout<<" FieldPropH: Propagate(): spot 1a: pos="<< track_ <<"\n";
 // #endif
 
   /****
@@ -190,84 +185,33 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
 #define PRINT_STEP_SINGLE 1
 #ifdef PRINT_STEP_SINGLE
   //GL: denominator should be track Pt w.r.t. Bfield, not P().  Did not fix, as it is only used for debugging printout.
-  double curvaturePlus = fabs(kB2C * Charge(track) * (bmag * toKiloGauss)) / (track.momentum() + 1.0e-30); // norm for step
+  double curvaturePlus = fabs(kB2C * particle_.charge() * (bmag * toKiloGauss)) / (particle_.momentum() + 1.0e-30); // norm for step
   const double angle = crtstep * curvaturePlus;
-  std::cout<<"__PropagateInVolume(Single): Momentum= "<< track.momentum() <<"/"<< units::GeV <<"="<< (track.momentum()/units::GeV)
-	   <<" (GeV) Curvature= "<< Curvature(track) * units::mm <<" (1/mm)"
+  std::cout<<"__PropagateInVolume(Single): Momentum= "<< particle_.momentum() <<"/"<< units::GeV <<"="<< (particle_.momentum()/units::GeV)
+	   <<" (GeV) Curvature= "<< Curvature() * units::mm <<" (1/mm)"
 	   <<"; step= "<< crtstep <<"/"<< units::mm <<"="<< crtstep / units::mm <<" (mm), Bmag="<< bmag <<"*"<< toKiloGauss
 	   <<" = "<< bmag * toKiloGauss <<" KG   angle= "<< angle << std::endl;
 // Print("\n");
 #endif
 
-  ThreeVector_t Position(track.pos());
-  ThreeVector_t Direction(track.dir());
+  ThreeVector_t Position(track_.pos());
+  ThreeVector_t Direction(track_.dir());
   ThreeVector_t PositionNew = {0., 0., 0.};
   ThreeVector_t DirectionNew = {0., 0., 0.};
 
   // char method= '0';
+  std::cout<<" FieldPropH: Propagate(): spot 2: pos="<< track_ <<"\n";
 
-  std::cout<<" FieldPropH: Propagate(): spot 2: pos="<< track <<"\n";
-// #if ENABLE_MORE_COMPLEX_FIELD
-//   ThreeVector_t PositionNewCheck = {0., 0., 0.};
-//   ThreeVector_t DirectionNewCheck = {0., 0., 0.};
-//   if (useRungeKutta || !fieldConfig->IsFieldUniform()) {
-//     assert(fieldPropagator);
-//     std::cout<<" FieldPropH: Propagate(): spot 3: pos="<< track <<"\n";
-//     fieldPropagator->DoStep(Position, Direction, Charge(track), track.momentum(), crtstep,
-//                             PositionNew, DirectionNew);
-//     std::cout<<" FieldPropH: Propagate(): spot 4: pos="<< track <<"\n";
-//     assert((PositionNew - Position).Mag() < crtstep + 1.e-4);
-// #  ifdef DEBUG_FIELD
-// // cross check
-// #    ifndef CHECK_VS_BZ
-//     ConstFieldHelixStepper stepper(BfieldInitial * toKiloGauss);
-//     std::cout<<" FieldPropH: Propagate(): spot 5a: pos="<< track <<"\n";
-//     stepper.DoStep<double>(Position, Direction, Charge(track), track.momentum(), crtstep,
-//                            PositionNewCheck, DirectionNewCheck);
-// #    else
-//     double Bz = BfieldInitial[2] * toKiloGauss;
-//     ConstBzFieldHelixStepper stepper_bz(Bz); //
-//     stepper_bz.DoStep<ThreeVector, double, int>(Position, Direction, Charge(track),
-//                                                 track.momentum(), crtstep, PositionNewCheck,
-//                                                 DirectionNewCheck);
-// #    endif
-
-//     std::cout<<" FieldPropH: Propagate(): spot 6: pos="<< track <<"\n";
-//     double posShift = (PositionNew - PositionNewCheck).Mag();
-//     double dirShift = (DirectionNew - DirectionNewCheck).Mag();
-
-//     if (posShift > epsilonRK || dirShift > epsilonRK) {
-//       std::cout << "*** position/direction shift RK vs. HelixConstBz :" << posShift
-//                 << " / " << dirShift << "\n";
-//       if (verboseDiff) {
-//         printf("%s End> Pos= %9.6f %9.6f %9.6f  Mom= %9.6f %9.6f %9.6f\n",
-//                " FPH::PiV(1)-RK: ", PositionNew[0], PositionNew[1], PositionNew[2],
-//                DirectionNew[0], DirectionNew[1], DirectionNew[2]);
-//         printf("%s End> Pos= %9.6f %9.6f %9.6f  Mom= %9.6f %9.6f %9.6f\n",
-//                " FPH::PiV(1)-Bz: ", PositionNewCheck[0], PositionNewCheck[1],
-//                PositionNewCheck[2], DirectionNewCheck[0], DirectionNewCheck[1],
-//                DirectionNewCheck[2]);
-//       }
-//     }
-// #  endif
-// // method= 'R';
-// #  ifdef STATS_METHODS
-//     numRK++;
-//     numTot++;
-// #  endif
-//   } else {
-// #endif
-
-    // geant::
-    double BfieldArr[3] = {BfieldInitial[0] * toKiloGauss,
-                           BfieldInitial[1] * toKiloGauss,
-                           BfieldInitial[2] * toKiloGauss};
-    std::cout<<" FieldPropH: Propagate(): spot 7: pos="<< track <<"\n";
-    ConstFieldHelixStepper stepper(BfieldArr);
-    std::cout<<" FieldPropH: Propagate(): spot 8: pos="<< track <<"\n";
-    stepper.DoStep<double>(Position, Direction, Charge(track),
-                           track.momentum(), crtstep, PositionNew,
-                           DirectionNew);
+  // geant::
+  double BfieldArr[3] = {BfieldInitial[0] * toKiloGauss,
+			 BfieldInitial[1] * toKiloGauss,
+			 BfieldInitial[2] * toKiloGauss};
+  std::cout<<" FieldPropH: Propagate(): spot 7: pos="<< track_ <<"\n";
+  ConstFieldHelixStepper stepper(BfieldArr);
+  std::cout<<" FieldPropH: Propagate(): spot 8: pos="<< track_ <<"\n";
+  stepper.DoStep<double>(Position, Direction, track_.charge(),
+			 track_.momentum(), crtstep, PositionNew,
+			 DirectionNew);
 // method= 'v';
 #ifdef STATS_METHODS
     numHelixGen++;
@@ -277,7 +221,11 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
 //   }
 // #endif
 
-  std::cout<<" FieldPropH: Propagate(): spot 9: pos="<< track <<", newPos="<< PositionNew <<", newDir="<< DirectionNew <<"\n";
+  std::cout<<" FieldPropH: Propagate(): spot 9: pos="<< track_
+	   <<", newPos="<< PositionNew
+	   <<", newDir="<< DirectionNew
+	   <<"\n";
+
 #ifdef PRINT_FIELD
   // Print(" FPH::PiV(1): Start>", " Pos= %8.5f %8.5f %8.5f  Mom= %8.5f %8.5f %8.5f",
   // Position[0], Position[1], Position[2], Direction[0], Direction[1], Direction[2]
@@ -286,8 +234,8 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
   // DirectionNew[1], DirectionNew[2] );
 
   // printf(" FPH::PiV(1): ");
-  printf(" FPH::PiV(1):: ev= %3d trk= %3d %3d %c ", track.Event(), track.Particle(),
-         track.GetNsteps(), method);
+  printf(" FPH::PiV(1):: ev= %3d trk= %3d %3d %c ", track_.Event(), track_.Particle(),
+         track_.GetNsteps(), method);
   printf("Start> Pos= %8.5f %8.5f %8.5f  Mom= %8.5f %8.5f %8.5f ", Position[0],
          Position[1], Position[2], Direction[0], Direction[1], Direction[2]);
   printf(" s= %10.6f ang= %7.5f ", crtstep / units::mm, angle);
@@ -311,38 +259,38 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
   double posShiftSq = dot_product(Position, Position);
 
 #ifdef COMPLETE_FUNCTIONAL_UPDATES
-  std::cout<<" FieldPropH: Propagate(): spot 10: pos="<< track <<"\n";
-  track.SetPosition(PositionNew);
-  track.SetDirection(DirectionNew);
-  track.NormalizeFast();
+  std::cout<<" FieldPropH: Propagate(): spot 10: pos="<< track_ <<"\n";
+  track_.SetPosition(PositionNew);
+  track_.SetDirection(DirectionNew);
+  track_.NormalizeFast();
 
   // Reset relevant variables
-  std::cout<<" FieldPropH: Propagate(): spot 11: pos="<< track <<"\n";
-  track.SetStatus(kInFlight);
-  track.IncrementNintSteps();
-  track.IncreaseStep(crtstep);
+  std::cout<<" FieldPropH: Propagate(): spot 11: pos="<< track_ <<"\n";
+  track_.SetStatus(kInFlight);
+  track_.IncrementNintSteps();
+  track_.IncreaseStep(crtstep);
 
-  std::cout<<" FieldPropH: Propagate(): spot 12: pos="<< track <<"\n";
-  track.DecreasePstep(crtstep);
-  if (track.fPhysicsState.fPstep < 1.E-10) {
-    track.SetPstep(0);
-    track.SetStatus(kPhysics);
+  std::cout<<" FieldPropH: Propagate(): spot 12: pos="<< track_ <<"\n";
+  track_.DecreasePstep(crtstep);
+  if (track_.fPhysicsState.fPstep < 1.E-10) {
+    track_.SetPstep(0);
+    track_.SetStatus(kPhysics);
   }
-  std::cout<<" FieldPropH: Propagate(): spot 13: pos="<< track <<"\n";
-  track.DecreaseSnext(crtstep);
+  std::cout<<" FieldPropH: Propagate(): spot 13: pos="<< track_ <<"\n";
+  track_.DecreaseSnext(crtstep);
   if (track.GetSnext() < 1.E-10) {
-    track.SetSnext(0);
-    if (track.Boundary()) track.SetStatus(kBoundary);
+    track_.SetSnext(0);
+    if (track_.Boundary()) track_.SetStatus(kBoundary);
   }
 
-  std::cout<<" FieldPropH: Propagate(): spot 14: pos="<< track <<"\n";
+  std::cout<<" FieldPropH: Propagate(): spot 14: pos="<< track_ <<"\n";
   double preSafety = track.GetSafety();
   if (posShiftSq > preSafety * preSafety) {
-    track.SetSafety(0);
+    track_.SetSafety(0);
   } else {
     double posShift = std::sqrt(posShiftSq);
-    track.DecreaseSafety(posShift);
-    if (track.GetSafety() < 1.E-10) track.SetSafety(0);
+    track_.DecreaseSafety(posShift);
+    if (track_.GetSafety() < 1.E-10) track_.SetSafety(0);
   }
 #else
   track.setPosition(PositionNew);
@@ -350,46 +298,46 @@ void InFieldPropagator::propagate_in_volume(GeoTrackView &track, double crtstep,
   // TODO: need to add normlization of track.
   // Normalize(track)
   //track.dir().Normalize(); // GL: Not needed, DirectionNew is now normalized.
-  std::cout<<" fDir new: ("<< track.dir()[0] <<"; "<< track.dir()[1] <<"; "<< track.dir()[2] <<")\n";
+  std::cout<<" fDir new: ("<< track_.dir()[0] <<"; "<< track_.dir()[1] <<"; "<< track_.dir()[2] <<")\n";
 
   // track.SetStatus(kInFlight);
-  track.step() += crtstep;
+  track_.step() += crtstep;
 
-  std::cout<<" FieldPropH: Propagate(): spot 15: pos="<< track <<"\n";
-  track.pstep() -= crtstep;
-  if (track.pstep() < 1.E-10) {
-    track.pstep() = 0;
-    track.status() = GeoTrackStatus::Physics;
+  std::cout<<" FieldPropH: Propagate(): spot 15: pos="<< track_ <<"\n";
+  track_.pstep() -= crtstep;
+  if (track_.pstep() < 1.E-10) {
+    track_.pstep() = 0;
+    track_.status() = GeoTrackStatus::Physics;
   }
 
-  std::cout<<" FieldPropH: Propagate(): spot 16: pos="<< track <<"\n";
-  track.snext() -= crtstep;
-  if (track.snext() < 1.E-10) {
-    track.snext() = 0;
-    if (track.boundary() == Boundary::Yes) track.status() = GeoTrackStatus::Boundary;
+  std::cout<<" FieldPropH: Propagate(): spot 16: pos="<< track_ <<"\n";
+  track_.snext() -= crtstep;
+  if (track_.snext() < 1.E-10) {
+    track_.snext() = 0;
+    if (track_.boundary() == Boundary::Yes) track.status() = GeoTrackStatus::Boundary;
   }
 
-  std::cout<<" FieldPropH: Propagate(): spot 17: pos="<< track <<"\n";
+  std::cout<<" FieldPropH: Propagate(): spot 17: pos="<< track_ <<"\n";
   const auto preSafety = track.safety();
   if (posShiftSq > preSafety * preSafety) {
-    track.safety() = 0;
+    track_.safety() = 0;
   } else {
     double posShift = std::sqrt(posShiftSq);
-    track.safety() -= posShift;
-    if (track.safety() < 1.E-10) track.safety() = 0;
+    track_.safety() -= posShift;
+    if (track_.safety() < 1.E-10) track_.safety() = 0;
   }
 #endif
 
-  std::cout<<" FieldPropH: Propagate(): spot 18: pos="<< track <<"\n";
+  std::cout<<" FieldPropH: Propagate(): spot 18: pos="<< track_ <<"\n";
 #ifdef REPORT_AND_CHECK
-  CheckTrack(track, "End of Propagate-In-Volume", 1.0e-5);
+  CheckTrack(track_, "End of Propagate-In-Volume", 1.0e-5);
 #endif
 }
 
 /*
 //______________________________________________________________________________
 VECCORE_ATT_HOST_DEVICE
-bool InFieldPropagator::IsSameLocation(GeoTrackView &track) const
+bool InFieldPropagator::IsSameLocation() const
 {
   // Query geometry if the location has changed for a track
   // Returns number of tracks crossing the boundary (0 or 1)
@@ -430,8 +378,7 @@ bool InFieldPropagator::IsSameLocation(GeoTrackView &track) const
 #  define IsNan(x) (!(x > 0 || x <= 0.0))
 //______________________________________________________________________________
 VECCORE_ATT_HOST_DEVICE
-void InFieldPropagator::check_track(GeoTrackView &track, const char *msg,
-                                         double epsilon) const
+void InFieldPropagator::check_track(const char *msg, real_type epsilon) const
 {
   // Ensure that values are 'sensible' - else print msg and track
   if (epsilon <= 0.0 || epsilon > 0.01) {
