@@ -5,7 +5,7 @@
 //---------------------------------------------------------------------------//
 //! \file LinearPropagationHandler.test.cc
 //---------------------------------------------------------------------------//
-#include "geometry/LinearPropagationHandler.hh"
+#include "geometry/LinearPropagator.hh"
 
 #include "geometry/GeoTrackView.hh"
 #include "GeoParamsTest.hh"

@@ -16,6 +16,8 @@
 #include "GeoParamsPointers.hh"
 #include "Types.hh"
 
+#include "base/ArrayIO.hh"
+
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
@@ -70,6 +72,25 @@ class GeoTrackView
     // A tiny push to make sure tracks go over boundaries, to minimize chances
     // of getting stuck at boundaries
     CELER_CONSTEXPR_FUNCTION static real_type tolerance() { return 1e-12; }
+
+    friend std::ostream& operator<<(std::ostream& os, const GeoTrackView& t)
+    {
+      os <<" addr="<< (void*)&t
+	 <<", pos="<< t.pos()
+	 <<", dir="<< t.dir()
+	//<<", status="<< t.status()
+        //<<", #steps="<< t.num_steps()
+	// <<", step="<< t.
+	// <<", Pstep="<< t.
+	// <<", snext="<< t.
+	// <<", safety="<< t.safety()
+	// <<", time="<< t.proper_time()
+	// <<", totLen="<< t.total_length()
+	 <<"\n";
+      t.vgstate_.Print();
+      t.vgnext_.Print();
+      return os;
+    }
 
   private:
     //@{

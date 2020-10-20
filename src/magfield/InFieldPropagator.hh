@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
-#include "magfield/EMFieldUnits.hh"
+#include "base/Units.hh"
 #include "geometry/GeoTrackView.hh"
 #include "physics/base/ParticleTrackView.hh"
 //#include "geometry/track/GeoTrackState.hh"

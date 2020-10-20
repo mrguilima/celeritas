@@ -66,12 +66,12 @@ double InFieldPropagator::curvature(const ThreeVector_t &Bfield,
 				    double bmag) const
 {
   assert(bmag > 0.0);
-  const double& pmag = particle_.momentum();
+  const units::MevMomentum& pmag = particle_.momentum();
   double plong = pmag * dot_product( track_.dir(), Bfield) / bmag;
   double pt    = sqrt(pmag * pmag - plong * plong);
   // if bmag and pt are positive, no need to call fabs() as in original code
   //return celeritas::constants::cLight * bmag / pt;
-  return celeritas::units::speed_of_light * bmag / pt;
+  return units::speed_of_light * bmag / pt;
 }
 
 //______________________________________________________________________________
@@ -188,7 +188,7 @@ void InFieldPropagator::propagate_in_volume(double crtstep,
   double curvaturePlus = fabs(kB2C * particle_.charge() * (bmag * toKiloGauss)) / (particle_.momentum() + 1.0e-30); // norm for step
   const double angle = crtstep * curvaturePlus;
   std::cout<<"__PropagateInVolume(Single): Momentum= "<< particle_.momentum() <<"/"<< units::GeV <<"="<< (particle_.momentum()/units::GeV)
-	   <<" (GeV) Curvature= "<< Curvature() * units::mm <<" (1/mm)"
+	   <<" (GeV); curvature= "<< curvature() * units::mm <<" (1/mm)"
 	   <<"; step= "<< crtstep <<"/"<< units::mm <<"="<< crtstep / units::mm <<" (mm), Bmag="<< bmag <<"*"<< toKiloGauss
 	   <<" = "<< bmag * toKiloGauss <<" KG   angle= "<< angle << std::endl;
 // Print("\n");
