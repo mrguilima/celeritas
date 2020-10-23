@@ -19,6 +19,19 @@ namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
+ * Enum for storing G4State enumerators
+ * [See G4Material.hh]
+ */
+enum class GeantMaterialState
+{
+    not_defined,
+    solid,
+    liquid,
+    gas
+};
+
+//---------------------------------------------------------------------------//
+/*!
  * Store data of a given material and its elements.
  *
  * Used by the GeantGeometryMap class.
@@ -29,19 +42,10 @@ namespace celeritas
  *
  * Units are defined at export time in the aforementioned function.
  */
-
-enum class MaterialState
-{
-    not_defined,
-    solid,
-    liquid,
-    gas
-};
-
 struct GeantMaterial
 {
     std::string              name;
-    MaterialState            state;
+    GeantMaterialState       state;
     real_type                temperature;        // [K]
     real_type                density;            // [g/cm^3]
     real_type                electron_density;   // [1/cm^3]

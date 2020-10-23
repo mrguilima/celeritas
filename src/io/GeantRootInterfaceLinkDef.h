@@ -12,16 +12,12 @@
 #pragma link C++ class celeritas::GeantParticle+;
 #pragma link C++ class celeritas::GeantPhysicsTable+;
 #pragma link C++ class celeritas::GeantPhysicsVector+;
-#pragma link C++ class celeritas::GeantModel+;
-#pragma link C++ class celeritas::GeantProcess+;
-#pragma link C++ class celeritas::GeantTableType+;
-#pragma link C++ class celeritas::GeantTableType+;
-#pragma link C++ class celeritas::ParticleMd+;
-#pragma link C++ class celeritas::PDGNumber+;
 #pragma link C++ class celeritas::GeantGeometryMap+;
 #pragma link C++ class celeritas::GeantMaterial+;
 #pragma link C++ class celeritas::GeantElement+;
 #pragma link C++ class celeritas::GeantVolume+;
+#pragma link C++ class celeritas::ParticleMd+;
+#pragma link C++ class celeritas::PDGNumber+;
 // clang-format on
 
 #endif

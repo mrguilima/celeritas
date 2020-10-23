@@ -45,31 +45,29 @@ class GeantGeometryMap
     // >>> READ
 
     // Find material id given volume id
-    mat_id get_matid(vol_id& volume_id);
+    const mat_id get_matid(vol_id& volume_id) const;
     // Find GeantVolume given volume id
-    GeantVolume get_volume(vol_id& volume_id);
+    const GeantVolume& get_volume(vol_id& volume_id) const;
     // Find GeantMaterial given a material id
-    GeantMaterial get_material(mat_id& material_id);
+    const GeantMaterial& get_material(mat_id& material_id) const;
     // Find GeantElement given element id
-    GeantElement get_element(elem_id& element_id);
+    const GeantElement& get_element(elem_id& element_id) const;
 
-    // Only used in geant-exporter-cat. Not sure we need this...
-    // Return a copy of private member volid_to_matid_
-    std::map<vol_id, mat_id> volid_to_matid_map();
+    // Return a reference to the private member volid_to_matid_ map
+    const std::map<vol_id, mat_id>& volid_to_matid_map();
 
     // >>> WRITE (only used by geant-exporter app)
 
     // Add pair <mat_id, material> to the map
-    void add_material(mat_id id, GeantMaterial material);
+    void add_material(mat_id id, GeantMaterial& material);
     // Add pair <vol_id, volume> to the map
-    void add_volume(vol_id id, GeantVolume volume);
+    void add_volume(vol_id id, GeantVolume& volume);
     // Add pair <elem_id, element> to the map
-    void add_element(elem_id id, GeantElement element);
+    void add_element(elem_id id, GeantElement& element);
     // Add pair <vol_id, mat_id> to the map
     void link_volume_material(vol_id volid, mat_id matid);
 
   private:
-    // Should we leave these public?
     // Global maps
     std::map<mat_id, GeantMaterial> matid_to_material_;
     std::map<vol_id, GeantVolume>   volid_to_volume_;

@@ -54,7 +54,7 @@ class GeantImporter
     {
         std::shared_ptr<ParticleParams>                 particle_params;
         std::shared_ptr<std::vector<GeantPhysicsTable>> physics_tables;
-        // Temporary. It will become something similar to ParticleParams
+        // Incomplete. It will store an object similar to ParticleParams
         std::shared_ptr<GeantGeometryMap>               geometry;
     };
 
@@ -73,7 +73,7 @@ class GeantImporter
     std::shared_ptr<ParticleParams> load_particle_data();
     // Populate a vector of GeantPhysicsTable objects
     std::shared_ptr<std::vector<GeantPhysicsTable>> load_physics_table_data();
-    // Load the GeantGeometryMap and update the shared_ptr address
+    // Load GeantGeometryMap object
     std::shared_ptr<GeantGeometryMap> load_geometry_data();
 
   public:

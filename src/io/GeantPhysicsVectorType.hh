@@ -15,15 +15,15 @@ namespace celeritas
  * Geant4 equivalent enum for Physics vector types.
  * [See Geant4's G4PhysicsVectorType.hh]
  */
-enum GeantPhysicsVectorType
+enum class GeantPhysicsVectorType
 {
-    physics_vector,
-    physics_linear_vector,
-    physics_log_vector,
-    physics_ln_vector,
-    physics_free_vector,
-    physics_ordered_free_vector,
-    lphysics_free_vector
+    base,
+    linear,
+    log,
+    ln,
+    free,
+    ordered_free,
+    low_energy_free
 };
 
 //---------------------------------------------------------------------------//

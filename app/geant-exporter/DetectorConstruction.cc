@@ -5,10 +5,10 @@
 //---------------------------------------------------------------------------//
 //! \file DetectorConstruction.cc
 //---------------------------------------------------------------------------//
+#include "DetectorConstruction.hh"
 
 #include <G4GDMLParser.hh>
 
-#include "DetectorConstruction.hh"
 #include "base/Assert.hh"
 
 namespace geant_exporter
@@ -27,6 +27,9 @@ DetectorConstruction::DetectorConstruction(G4String gdmlInput)
 }
 
 //---------------------------------------------------------------------------//
+/*!
+ * Default destructor.
+ */
 DetectorConstruction::~DetectorConstruction() = default;
 
 //---------------------------------------------------------------------------//
@@ -36,16 +39,19 @@ DetectorConstruction::~DetectorConstruction() = default;
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
     REQUIRE(phys_vol_world_);
-    return phys_vol_world_.get();
+    return phys_vol_world_.release();
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Return the world physical volume shared pointer.
+ * Return the world physical volume pointer.
+ *
+ * This must be called before Construct() is invoked, i.e. before releasing
+ * unique_ptr<DetectorConstruction> to the run manager in main().
  */
-std::shared_ptr<G4VPhysicalVolume> DetectorConstruction::get_world_volume()
+const G4VPhysicalVolume* DetectorConstruction::get_world_volume() const
 {
-    return std::shared_ptr<G4VPhysicalVolume>(phys_vol_world_);
+    return phys_vol_world_.get();
 }
 
 //---------------------------------------------------------------------------//

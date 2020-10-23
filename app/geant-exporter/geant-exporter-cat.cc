@@ -87,12 +87,10 @@ Volume ID | Material ID | Volume Name                          | Material Name
 --------- | ----------- | ------------------------------------ | ---------------------------
 )gfm";
 
-    std::map<GeantGeometryMap::vol_id, GeantGeometryMap::mat_id>::iterator iter;
-
-    for (iter = map.begin(); iter != map.end(); iter++)
+    for (const auto& key_value : map)
     {
-        auto volid    = iter->first;
-        auto matid    = iter->second;
+        auto volid    = key_value.first;
+        auto matid    = key_value.second;
         auto volume   = geometry->get_volume(volid);
         auto material = geometry->get_material(matid);
 

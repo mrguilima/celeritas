@@ -5,14 +5,14 @@
 //---------------------------------------------------------------------------//
 //! \file PhysicsList.cc
 //---------------------------------------------------------------------------//
+#include "PhysicsList.hh"
+
 #include <G4Gamma.hh>
 #include <G4Electron.hh>
 #include <G4Positron.hh>
 #include <G4ComptonScattering.hh>
 #include <G4ProcessManager.hh>
 #include <G4SystemOfUnits.hh>
-
-#include "PhysicsList.hh"
 
 namespace geant_exporter
 {

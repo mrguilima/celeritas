@@ -13,9 +13,6 @@ namespace celeritas
 //---------------------------------------------------------------------------//
 /*!
  * Same enum as in Geant4. [See Geant4's G4ProcessType.hh]
- *
- * FOR REVIEW: The enum keeps the Geant4 names, not following Celeritas code
- * standards.
  */
 enum class GeantProcessType
 {

@@ -32,10 +32,16 @@
 #include "io/GeantParticle.hh"
 #include "io/GeantPhysicsTable.hh"
 #include "io/GeantGeometryMap.hh"
+#include "base/Range.hh"
 
 using namespace geant_exporter;
+using celeritas::GeantElement;
 using celeritas::GeantGeometryMap;
+using celeritas::GeantMaterial;
+using celeritas::GeantMaterialState;
 using celeritas::GeantParticle;
+using celeritas::GeantVolume;
+using celeritas::real_type;
 using std::cout;
 using std::endl;
 
@@ -130,7 +136,7 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
         for (std::size_t j = 0; j < process_list->size(); j++)
         {
             G4VProcess* process = (*process_list)[j];
-            table_writer.add_physics_tables(process, g4_particle_def);
+            table_writer.add_physics_tables(*process, *g4_particle_def);
         }
     }
     cout << endl;
@@ -140,19 +146,40 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
 
 //---------------------------------------------------------------------------//
 /*!
- * Recurring loop over all logical volumes.
+ * Safely switch from G4State [G4Material.hh] to GeantMaterialState.
+ */
+GeantMaterialState select_material_state(const G4State& g4_material_state)
+{
+    switch (g4_material_state)
+    {
+        case G4State::kStateUndefined:
+            return GeantMaterialState::not_defined;
+        case G4State::kStateSolid:
+            return GeantMaterialState::solid;
+        case G4State::kStateLiquid:
+            return GeantMaterialState::liquid;
+        case G4State::kStateGas:
+            return GeantMaterialState::gas;
+    }
+    CHECK(false);
+}
+
+//---------------------------------------------------------------------------//
+/*!
+ * Recursive loop over all logical volumes.
  *
  * Function called by store_geometry(...)
  */
-void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
+void loop_volumes(GeantGeometryMap&      geometry,
+                  const G4LogicalVolume& logical_volume)
 {
     GeantVolume              volume;
     GeantGeometryMap::vol_id volume_id;
     GeantGeometryMap::mat_id material_id;
 
-    volume.name = logical_volume->GetName();
-    volume_id   = logical_volume->GetInstanceID();
-    material_id = logical_volume->GetMaterialCutsCouple()->GetIndex();
+    volume.name = logical_volume.GetName();
+    volume_id   = logical_volume.GetInstanceID();
+    material_id = logical_volume.GetMaterialCutsCouple()->GetIndex();
 
     // Add volume to the global volume map
     geometry.add_volume(volume_id, volume);
@@ -160,17 +187,11 @@ void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
     // Map volume to its material
     geometry.link_volume_material(volume_id, material_id);
 
-    // Check for daughter volumes
-    if (logical_volume->GetNoDaughters() > 0)
+    // Recursive: repeat for every daughter volume, if there are any
+    for (auto i : celeritas::range(logical_volume.GetNoDaughters()))
     {
-        // Repeat for every daughter volume
-        for (size_type i = 0; i < logical_volume->GetNoDaughters(); i++)
-        {
-            auto daughter_vol
-                = logical_volume->GetDaughter(i)->GetLogicalVolume();
-
-            loop_volumes(geometry, daughter_vol);
-        }
+        loop_volumes(geometry,
+                     *logical_volume.GetDaughter(i)->GetLogicalVolume());
     }
 }
 
@@ -180,13 +201,11 @@ void loop_volumes(GeantGeometryMap& geometry, G4LogicalVolume* logical_volume)
  *
  * The ROOT file must be open before this call.
  */
-void store_geometry(TFile*                             root_file,
-                    G4ProductionCutsTable*             g4production_cuts,
-                    std::shared_ptr<G4VPhysicalVolume> world_volume)
+void store_geometry(TFile*                       root_file,
+                    const G4ProductionCutsTable& g4production_cuts,
+                    const G4VPhysicalVolume&     world_volume)
 {
     REQUIRE(root_file);
-    REQUIRE(g4production_cuts);
-    REQUIRE(world_volume);
 
     cout << "Exporting material and volume information..." << endl;
 
@@ -197,19 +216,24 @@ void store_geometry(TFile*                             root_file,
     tree_materials.Branch("GeantGeometryMap", &geometry);
 
     // Loop over materials and elements
-    for (size_type i = 0; i < g4production_cuts->GetTableSize(); i++)
+    for (auto i : celeritas::range(g4production_cuts.GetTableSize()))
     {
         // Fetch material and element list
-        auto g4material_cuts = g4production_cuts->GetMaterialCutsCouple(i);
-        auto g4material      = g4material_cuts->GetMaterial();
-        auto g4elements      = g4material->GetElementVector();
+        const auto& g4material_cuts
+            = g4production_cuts.GetMaterialCutsCouple(i);
+        const auto& g4material = g4material_cuts->GetMaterial();
+        const auto& g4elements = g4material->GetElementVector();
+
+        CHECK(g4material_cuts);
+        CHECK(g4material);
+        CHECK(g4elements);
 
         // Populate material information
         GeantMaterial material;
-        material.name             = g4material->GetName();
-        material.state            = (MaterialState)g4material->GetState();
-        material.temperature      = g4material->GetTemperature();
-        material.density          = g4material->GetDensity() / (g / cm3);
+        material.name        = g4material->GetName();
+        material.state       = select_material_state(g4material->GetState());
+        material.temperature = g4material->GetTemperature(); // [K]
+        material.density     = g4material->GetDensity() / (g / cm3);
         material.electron_density = g4material->GetTotNbOfElectPerVolume()
                                     / (1. / cm3);
         material.atomic_density = g4material->GetTotNbOfAtomsPerVolume()
@@ -218,9 +242,10 @@ void store_geometry(TFile*                             root_file,
         material.nuclear_int_length = g4material->GetNuclearInterLength() / cm;
 
         // Populate element information
-        for (size_type j = 0; j < g4elements->size(); j++)
+        for (auto j : celeritas::range(g4elements->size()))
         {
-            auto g4element = g4elements->at(j);
+            const auto& g4element = g4elements->at(j);
+            CHECK(g4element);
 
             GeantElement element;
             element.name                  = g4element->GetName();
@@ -237,15 +262,15 @@ void store_geometry(TFile*                             root_file,
 
             // Connect global element to a given material
             material.elements.push_back(elid);
-            material.fractions.insert(
-                std::pair<GeantGeometryMap::elem_id, real_type>(elid, frac));
+            material.fractions.insert({elid, frac});
         }
         // Add material to the global material map
         geometry.add_material(g4material_cuts->GetIndex(), material);
     }
 
-    // Loop over volumes
-    loop_volumes(geometry, world_volume->GetLogicalVolume());
+    // Recursive loop over all logical volumes, starting from the world_volume
+    // Populate volume information and map volumes with materials
+    loop_volumes(geometry, *world_volume.GetLogicalVolume());
 
     tree_materials.Fill();
     root_file->Write();
@@ -276,7 +301,7 @@ int main(int argc, char* argv[])
     // >>> Initialize the geometry
 
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
-    // Copy G4VPhysicalVolume for future work before releasing detector ptr
+    // Get G4VPhysicalVolume* for future work before releasing detector ptr
     auto world_phys_volume = detector->get_world_volume();
     run_manager.SetUserInitialization(detector.release());
 
@@ -316,8 +341,8 @@ int main(int argc, char* argv[])
 
     // Store material and volume information
     store_geometry(&root_output,
-                   G4ProductionCutsTable::GetProductionCutsTable(),
-                   world_phys_volume);
+                   *G4ProductionCutsTable::GetProductionCutsTable(),
+                   *world_phys_volume);
 
     root_output.Close();
 

@@ -23,9 +23,9 @@ namespace celeritas
 struct GeantPhysicsVector
 {
     GeantPhysicsVectorType vector_type;
-    bool                   is_eloss; // Check if it is a xs or eloss dataVector
-    std::vector<real_type> energy;   // [MeV] Geant4 binVector
-    std::vector<real_type> xs_eloss; // [1/cm or MeV] Geant4 dataVector
+    bool                   is_eloss; // Check if it is a xs or eloss vector
+    std::vector<real_type> energy;   // [MeV] (Geant4's binVector)
+    std::vector<real_type> xs_eloss; // [1/cm or MeV] (Geant4's dataVector)
 };
 
 //---------------------------------------------------------------------------//

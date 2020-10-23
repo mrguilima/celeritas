@@ -24,10 +24,10 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     ~DetectorConstruction();
 
     G4VPhysicalVolume* Construct() override;
-    std::shared_ptr<G4VPhysicalVolume> get_world_volume();
+    const G4VPhysicalVolume* get_world_volume() const;
 
   private:
-    std::shared_ptr<G4VPhysicalVolume> phys_vol_world_;
+    std::unique_ptr<G4VPhysicalVolume> phys_vol_world_;
 };
 
 //---------------------------------------------------------------------------//
