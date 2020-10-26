@@ -47,7 +47,7 @@ void PhysicsList::ConstructParticle()
 void PhysicsList::ConstructProcess()
 {
     // Inherited from G4VUserPhysicsList. Applies to all constructed particles
-    AddTransportation();
+    this->AddTransportation();
 
     auto klein_nishina_process = std::make_unique<G4ComptonScattering>();
     G4ProcessManager* process_manager = G4Gamma::Gamma()->GetProcessManager();

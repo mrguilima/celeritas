@@ -20,7 +20,7 @@ GeantGeometryMap::~GeantGeometryMap() = default;
 /*!
  * Return the mat_id for a given vol_id
  */
-const mat_id GeantGeometryMap::get_matid(vol_id volume_id) const
+mat_id GeantGeometryMap::get_matid(vol_id volume_id) const
 {
     auto iter = volid_to_matid_.find(volume_id);
     REQUIRE(iter != volid_to_matid_.end());

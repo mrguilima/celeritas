@@ -13,8 +13,8 @@ namespace celeritas
 //@{
 //!
 using mat_id  = int;
-using vol_id  = int;
 using elem_id = int;
+using vol_id  = int;
 //@}
 //---------------------------------------------------------------------------//
 } // namespace celeritas

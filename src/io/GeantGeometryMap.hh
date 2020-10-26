@@ -39,7 +39,7 @@ class GeantGeometryMap
     // >>> READ
 
     // Find material id given volume id
-    const mat_id get_matid(vol_id volume_id) const;
+    mat_id get_matid(vol_id volume_id) const;
     // Find GeantVolume given volume id
     const GeantVolume& get_volume(vol_id volume_id) const;
     // Find GeantMaterial given a material id

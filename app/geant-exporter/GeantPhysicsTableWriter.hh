@@ -25,7 +25,10 @@ class G4ParticleDefinition;
 class G4PhysicsTable;
 
 using celeritas::GeantPhysicsTable;
+using celeritas::GeantPhysicsVector;
 
+namespace geant_exporter
+{
 //---------------------------------------------------------------------------//
 /*!
  * Use an existing TFile address as input to create a new "tables" TTree used
@@ -57,12 +60,13 @@ class GeantPhysicsTableWriter
     void
     fill_multiple_scattering_tables(const G4VMultipleScattering& msc_process);
     // Write the physics vectors from a given G4PhysicsTable to this->table_
-    void fill_physics_vectors(G4PhysicsTable& table, std::string xs_or_eloss);
+    void fill_physics_vectors(const G4PhysicsTable&        table,
+                              GeantPhysicsVector::DataType xs_or_eloss);
     // Write the remaining elements of this->table_ and fill the tables TTree
-    void fill_tables_tree(G4PhysicsTable& table,
-                          std::string     table_type_name,
-                          std::string     table_name,
-                          std::string     xs_or_eloss);
+    void fill_tables_tree(const G4PhysicsTable&        table,
+                          std::string                  table_type_name,
+                          std::string                  table_name,
+                          GeantPhysicsVector::DataType xs_or_eloss);
 
   private:
     // TTree created by the constructor
@@ -70,3 +74,6 @@ class GeantPhysicsTableWriter
     // Object written in the TTree. Each GeantPhysicsTable is a new TTree entry
     GeantPhysicsTable table_;
 };
+
+//---------------------------------------------------------------------------//
+} // namespace geant_exporter

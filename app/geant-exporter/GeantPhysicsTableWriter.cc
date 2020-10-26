@@ -44,6 +44,8 @@ using geant_exporter::to_geant_process;
 using geant_exporter::to_geant_process_type;
 using geant_exporter::to_geant_table_type;
 
+namespace geant_exporter
+{
 //---------------------------------------------------------------------------//
 /*!
  * Construct with existing TFile reference
@@ -63,25 +65,25 @@ void GeantPhysicsTableWriter::add_physics_tables(
     const G4VProcess& process, const G4ParticleDefinition& particle)
 {
     // Process name
-    std::string process_name = process.GetProcessName();
+    const std::string& process_name = process.GetProcessName();
 
     // Write this->table_
     table_.process_type = to_geant_process_type(process.GetProcessType());
     table_.process      = to_geant_process(process_name);
     table_.particle     = PDGNumber(particle.GetPDGEncoding());
 
-    if (auto em_process = dynamic_cast<const G4VEmProcess*>(&process))
+    if (const auto* em_process = dynamic_cast<const G4VEmProcess*>(&process))
     {
         // G4VEmProcess tables
         this->fill_em_tables(*em_process);
     }
-    else if (auto energy_loss
+    else if (const auto* energy_loss
              = dynamic_cast<const G4VEnergyLossProcess*>(&process))
     {
         // G4VEnergyLossProcess tables
         this->fill_energy_loss_tables(*energy_loss);
     }
-    else if (auto multiple_scattering
+    else if (const auto* multiple_scattering
              = dynamic_cast<const G4VMultipleScattering*>(&process))
     {
         // G4VMultipleScattering tables
@@ -93,18 +95,19 @@ void GeantPhysicsTableWriter::add_physics_tables(
     }
 }
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 /*!
  * Write EM process tables to the TTree
  */
 void GeantPhysicsTableWriter::fill_em_tables(const G4VEmProcess& em_process)
 {
-    std::string process_name = em_process.GetProcessName();
+    const std::string process_name = em_process.GetProcessName();
 
     for (auto i : celeritas::range(em_process.GetNumberOfModels()))
     {
         // Model
-        std::string model_name = em_process.GetModelByIndex(i)->GetName();
+        const std::string& model_name
+            = em_process.GetModelByIndex(i)->GetName();
 
         // Write table_
         table_.model = to_geant_model(model_name);
@@ -112,91 +115,127 @@ void GeantPhysicsTableWriter::fill_em_tables(const G4VEmProcess& em_process)
         std::string table_name = process_name + "_" + model_name;
 
         // The same model can have both Lambda and LambdaPrim tables
-        if (G4PhysicsTable* table = em_process.LambdaTable())
+        if (const G4PhysicsTable* table = em_process.LambdaTable())
         {
-            this->fill_tables_tree(*table, "Lambda", table_name, "xs");
+            this->fill_tables_tree(
+                *table, "Lambda", table_name, GeantPhysicsVector::DataType::xs);
         }
 
-        if (G4PhysicsTable* table = em_process.LambdaTablePrim())
+        if (const G4PhysicsTable* table = em_process.LambdaTablePrim())
         {
-            this->fill_tables_tree(*table, "LambdaPrim", table_name, "xs");
+            this->fill_tables_tree(*table,
+                                   "LambdaPrim",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::xs);
         }
     }
 }
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 /*!
  * Write energy loss tables to the TTree
  */
 void GeantPhysicsTableWriter::fill_energy_loss_tables(
     const G4VEnergyLossProcess& eloss_process)
 {
-    std::string process_name = eloss_process.GetProcessName();
+    const std::string& process_name = eloss_process.GetProcessName();
 
     for (auto i : celeritas::range(eloss_process.NumberOfModels()))
     {
         // Model
-        std::string model_name = eloss_process.GetModelByIndex(i)->GetName();
+        const std::string& model_name
+            = eloss_process.GetModelByIndex(i)->GetName();
 
         // Write table_
         table_.model = to_geant_model(model_name);
 
         std::string table_name = process_name + "_" + model_name;
 
-        if (G4PhysicsTable* table = eloss_process.DEDXTable())
+        if (const G4PhysicsTable* table = eloss_process.DEDXTable())
         {
-            this->fill_tables_tree(*table, "DEDX", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "DEDX",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.DEDXTableForSubsec())
+        if (const G4PhysicsTable* table = eloss_process.DEDXTableForSubsec())
         {
-            this->fill_tables_tree(*table, "SubDEDX", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "SubDEDX",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.DEDXunRestrictedTable())
+        if (const G4PhysicsTable* table = eloss_process.DEDXunRestrictedTable())
         {
-            this->fill_tables_tree(*table, "DEDXnr", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "DEDXnr",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.IonisationTable())
+        if (const G4PhysicsTable* table = eloss_process.IonisationTable())
         {
-            this->fill_tables_tree(*table, "Ionisation", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "Ionisation",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.IonisationTableForSubsec())
+        if (const G4PhysicsTable* table
+            = eloss_process.IonisationTableForSubsec())
         {
-            this->fill_tables_tree(
-                *table, "SubIonisation", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "SubIonisation",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.CSDARangeTable())
+        if (const G4PhysicsTable* table = eloss_process.CSDARangeTable())
         {
-            this->fill_tables_tree(*table, "CSDARange", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "CSDARange",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.SecondaryRangeTable())
+        if (const G4PhysicsTable* table = eloss_process.SecondaryRangeTable())
         {
-            this->fill_tables_tree(*table, "RangeSec", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "RangeSec",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
         if (G4PhysicsTable* table = eloss_process.RangeTableForLoss())
         {
-            this->fill_tables_tree(*table, "Range", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "Range",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.InverseRangeTable())
+        if (const G4PhysicsTable* table = eloss_process.InverseRangeTable())
         {
-            this->fill_tables_tree(*table, "InverseRange", table_name, "eloss");
+            this->fill_tables_tree(*table,
+                                   "InverseRange",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::energy_loss);
         }
 
-        if (G4PhysicsTable* table = eloss_process.LambdaTable())
+        if (const G4PhysicsTable* table = eloss_process.LambdaTable())
         {
-            this->fill_tables_tree(*table, "Lambda", table_name, "xs");
+            this->fill_tables_tree(
+                *table, "Lambda", table_name, GeantPhysicsVector::DataType::xs);
         }
 
-        if (G4PhysicsTable* table = eloss_process.SubLambdaTable())
+        if (const G4PhysicsTable* table = eloss_process.SubLambdaTable())
         {
-            this->fill_tables_tree(*table, "SubLambda", table_name, "xs");
+            this->fill_tables_tree(*table,
+                                   "SubLambda",
+                                   table_name,
+                                   GeantPhysicsVector::DataType::xs);
         }
     }
 }
@@ -208,7 +247,7 @@ void GeantPhysicsTableWriter::fill_energy_loss_tables(
 void GeantPhysicsTableWriter::fill_multiple_scattering_tables(
     const G4VMultipleScattering& msc_process)
 {
-    std::string process_name = msc_process.GetProcessName();
+    const std::string& process_name = msc_process.GetProcessName();
 
     // TODO: Figure out a method to get the number of models. Max is 4.
     // Other classes have a NumberOfModels(), but not G4VMultipleScattering
@@ -216,10 +255,10 @@ void GeantPhysicsTableWriter::fill_multiple_scattering_tables(
     {
         if (G4VEmModel* model = msc_process.GetModelByIndex(i))
         {
-            if (G4PhysicsTable* table = model->GetCrossSectionTable())
+            if (const G4PhysicsTable* table = model->GetCrossSectionTable())
             {
                 // Table type
-                std::string model_name = model->GetName();
+                const std::string& model_name = model->GetName();
 
                 // Write table_
                 table_.model = to_geant_model(model_name);
@@ -228,7 +267,10 @@ void GeantPhysicsTableWriter::fill_multiple_scattering_tables(
                 std::string table_type_name = "LambdaMod"
                                               + std::to_string(i + 1);
                 this->fill_tables_tree(
-                    *table, table_type_name, table_name, "eloss");
+                    *table,
+                    table_type_name,
+                    table_name,
+                    GeantPhysicsVector::DataType::energy_loss);
             }
         }
     }
@@ -238,8 +280,8 @@ void GeantPhysicsTableWriter::fill_multiple_scattering_tables(
 /*!
  * Write a given G4PhysicsTable as a GeantPhysicsVector in this->table_
  */
-void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable& table,
-                                                   std::string     xs_or_eloss)
+void GeantPhysicsTableWriter::fill_physics_vectors(
+    const G4PhysicsTable& table, GeantPhysicsVector::DataType xs_or_eloss)
 {
     REQUIRE(&table);
 
@@ -255,7 +297,7 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable& table,
         geant_physics_vector.vector_type
             = to_geant_physics_vector_type(phys_vector->GetType());
 
-        geant_physics_vector.is_eloss = (xs_or_eloss != "xs");
+        geant_physics_vector.data_type = xs_or_eloss;
 
         for (auto j : celeritas::range(phys_vector->GetVectorLength()))
         {
@@ -263,7 +305,8 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable& table,
             real_type energy   = phys_vector->Energy(j) / MeV;
             real_type xs_eloss = (*phys_vector)[j];
 
-            if (geant_physics_vector.is_eloss)
+            if (geant_physics_vector.data_type
+                == GeantPhysicsVector::DataType::energy_loss)
             {
                 xs_eloss /= MeV;
             }
@@ -285,10 +328,11 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable& table,
  * It finishes writing the remaining elements of this->table_ and fills the
  * "tables" TTree.
  */
-void GeantPhysicsTableWriter::fill_tables_tree(G4PhysicsTable& table,
-                                               std::string     table_type_name,
-                                               std::string     table_name,
-                                               std::string     xs_or_eloss)
+void GeantPhysicsTableWriter::fill_tables_tree(
+    const G4PhysicsTable&        table,
+    std::string                  table_type_name,
+    std::string                  table_name,
+    GeantPhysicsVector::DataType xs_or_eloss)
 {
     REQUIRE(&table);
 
@@ -303,3 +347,6 @@ void GeantPhysicsTableWriter::fill_tables_tree(G4PhysicsTable& table,
     table_name = table_type_name + "_" + table_name;
     std::cout << "  Added " << table_name << std::endl;
 }
+
+//---------------------------------------------------------------------------//
+} // namespace geant_exporter

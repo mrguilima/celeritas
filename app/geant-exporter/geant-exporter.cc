@@ -66,13 +66,13 @@ void store_particles(TFile* root_file, G4ParticleTable* particle_table)
     GeantParticle particle;
     tree_particles.Branch("GeantParticle", &particle);
 
-    G4ParticleTable::G4PTblDicIterator* particle_iterator
-        = G4ParticleTable::GetParticleTable()->GetIterator();
-    particle_iterator->reset();
+    G4ParticleTable::G4PTblDicIterator& particle_iterator
+        = *(G4ParticleTable::GetParticleTable()->GetIterator());
+    particle_iterator.reset();
 
-    while ((*particle_iterator)())
+    while (particle_iterator())
     {
-        G4ParticleDefinition* g4_particle_def = particle_iterator->value();
+        G4ParticleDefinition* g4_particle_def = particle_iterator.value();
 
         // Skip "dummy" particles: generic ion and geantino
         if (g4_particle_def->GetPDGEncoding() == 0)
@@ -265,8 +265,7 @@ void store_geometry(TFile*                       root_file,
             geometry.add_element(elid, element);
 
             // Connect global element to a given material
-            material.elements.push_back(elid);
-            material.fractions.insert({elid, frac});
+            material.elements_fractions.insert({elid, frac});
         }
         // Add material to the global material map
         geometry.add_material(g4material_cuts->GetIndex(), material);
@@ -305,7 +304,7 @@ int main(int argc, char* argv[])
     // >>> Initialize the geometry
 
     auto detector = std::make_unique<DetectorConstruction>(gdml_input_filename);
-    // Get G4VPhysicalVolume* for future work before releasing detector ptr
+    // Get world_volume for store_geometry() before releasing detector ptr
     auto world_phys_volume = detector->get_world_volume();
     run_manager.SetUserInitialization(detector.release());
 

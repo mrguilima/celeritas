@@ -37,7 +37,7 @@ namespace geant_exporter
 /*!
  * Safely retrieve the correct table type enum from a given string.
  */
-GeantTableType to_geant_table_type(std::string& g4_table_type_name)
+GeantTableType to_geant_table_type(const std::string& g4_table_type_name)
 {
     const static std::unordered_map<std::string, GeantTableType> table_map = {
         // clang-format off
@@ -131,7 +131,7 @@ GeantProcessType to_geant_process_type(const G4ProcessType g4_process_type)
 /*!
  * Safely retrieve the correct process enum from a given string.
  */
-GeantProcess to_geant_process(std::string& g4_process_name)
+GeantProcess to_geant_process(const std::string& g4_process_name)
 {
     const static std::unordered_map<std::string, GeantProcess> process_map = {
         // clang-format off
@@ -164,7 +164,7 @@ GeantProcess to_geant_process(std::string& g4_process_name)
 /*!
  * Safely retrieve the correct model enum from a given string.
  */
-GeantModel to_geant_model(std::string& g4_model_name)
+GeantModel to_geant_model(const std::string& g4_model_name)
 {
     const static std::unordered_map<std::string, GeantModel> model_map = {
         // clang-format off

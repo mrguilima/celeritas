@@ -148,7 +148,7 @@ TEST_F(GeantImporterTest, import_geometry)
     EXPECT_SOFT_EQ(material.atomic_density, 5.0756589772243755e+19); // [1/cm^3]
     EXPECT_SOFT_EQ(material.radiation_length, 30152.065419629631);   // [cm]
     EXPECT_SOFT_EQ(material.nuclear_int_length, 70408.106699294673); // [cm]
-    EXPECT_EQ(material.elements.size(), 4);
+    EXPECT_EQ(material.elements_fractions.size(), 4);
 
     // Elements within material
     std::string elements_name[4] = {"N", "O", "Ar", "H"};
@@ -158,15 +158,16 @@ TEST_F(GeantImporterTest, import_geometry)
     real_type atomic_mass[4]
         = {14.00676896, 15.999390411, 39.94769335110001, 1.007940752665138};
 
-    for (auto i : celeritas::range(4))
+    int i = 0;
+    for (auto const& iter : material.elements_fractions)
     {
-        auto elid         = material.elements.at(i);
+        auto elid         = iter.first;
         auto element      = data.geometry->get_element(elid);
-        auto fraction_map = material.fractions.find(elid);
 
         EXPECT_EQ(element.name, elements_name[i]);
         EXPECT_EQ(element.atomic_number, atomic_number[i]);
         EXPECT_SOFT_EQ(element.atomic_mass, atomic_mass[i]);
-        EXPECT_SOFT_EQ(fraction_map->second, fraction[i]);
+        EXPECT_SOFT_EQ(iter.second, fraction[i]);
+        i++;
     }
 }

@@ -52,8 +52,7 @@ struct GeantMaterial
     real_type                    atomic_density;     // [1/cm^3]
     real_type                    radiation_length;   // [cm]
     real_type                    nuclear_int_length; // [cm]
-    std::vector<elem_id>         elements;
-    std::map<elem_id, real_type> fractions;
+    std::map<elem_id, real_type> elements_fractions;
 };
 
 //---------------------------------------------------------------------------//

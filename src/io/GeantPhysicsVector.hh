@@ -22,8 +22,14 @@ namespace celeritas
  */
 struct GeantPhysicsVector
 {
+    enum class DataType
+    {
+        xs,
+        energy_loss
+    };
+
     GeantPhysicsVectorType vector_type;
-    bool                   is_eloss; // Check if it is a xs or eloss vector
+    DataType               data_type;
     std::vector<real_type> energy;   // [MeV] (Geant4's binVector)
     std::vector<real_type> xs_eloss; // [1/cm or MeV] (Geant4's dataVector)
 };
