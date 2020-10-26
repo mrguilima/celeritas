@@ -51,6 +51,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
  */
 const G4VPhysicalVolume* DetectorConstruction::get_world_volume() const
 {
+    REQUIRE(phys_vol_world_);
     return phys_vol_world_.get();
 }
 

@@ -20,8 +20,7 @@ GeantGeometryMap::~GeantGeometryMap() = default;
 /*!
  * Return the mat_id for a given vol_id
  */
-const GeantGeometryMap::mat_id
-GeantGeometryMap::get_matid(vol_id& volume_id) const
+const mat_id GeantGeometryMap::get_matid(vol_id volume_id) const
 {
     auto iter = volid_to_matid_.find(volume_id);
     REQUIRE(iter != volid_to_matid_.end());
@@ -32,7 +31,7 @@ GeantGeometryMap::get_matid(vol_id& volume_id) const
 /*!
  * Return the GeantVolume associated with the vol_id
  */
-const GeantVolume& GeantGeometryMap::get_volume(vol_id& volume_id) const
+const GeantVolume& GeantGeometryMap::get_volume(vol_id volume_id) const
 {
     auto iter = volid_to_volume_.find(volume_id);
     REQUIRE(iter != volid_to_volume_.end());
@@ -43,7 +42,7 @@ const GeantVolume& GeantGeometryMap::get_volume(vol_id& volume_id) const
 /*!
  * Return the GeantMaterial associated with the mat_id
  */
-const GeantMaterial& GeantGeometryMap::get_material(mat_id& material_id) const
+const GeantMaterial& GeantGeometryMap::get_material(mat_id material_id) const
 {
     auto iter = matid_to_material_.find(material_id);
     REQUIRE(iter != matid_to_material_.end());
@@ -53,7 +52,7 @@ const GeantMaterial& GeantGeometryMap::get_material(mat_id& material_id) const
 /*!
  * Return the GeantElement associated with the elem_id
  */
-const GeantElement& GeantGeometryMap::get_element(elem_id& element_id) const
+const GeantElement& GeantGeometryMap::get_element(elem_id element_id) const
 {
     auto iter = elemid_to_element_.find(element_id);
     REQUIRE(iter != elemid_to_element_.end());
@@ -64,8 +63,7 @@ const GeantElement& GeantGeometryMap::get_element(elem_id& element_id) const
 /*!
  * Return a copy of private member volid_to_matid_
  */
-const std::map<GeantGeometryMap::vol_id, GeantGeometryMap::mat_id>&
-GeantGeometryMap::volid_to_matid_map()
+const std::map<vol_id, mat_id>& GeantGeometryMap::volid_to_matid_map()
 {
     return volid_to_matid_;
 }
@@ -74,26 +72,27 @@ GeantGeometryMap::volid_to_matid_map()
 /*!
  * Add pair <mat_id, GeantMaterial> to the matid_to_material_ map
  */
-void GeantGeometryMap::add_material(mat_id id, GeantMaterial& material)
+void GeantGeometryMap::add_material(mat_id id, const GeantMaterial& material)
 {
     auto result = matid_to_material_.insert({id, material});
+    CHECK(result.second);
 }
 
 //---------------------------------------------------------------------------//
 /*!
  * Add pair <vol_id, volume> to the volid_to_volume_ map
  */
-void GeantGeometryMap::add_volume(vol_id id, GeantVolume& volume)
+void GeantGeometryMap::add_volume(vol_id id, const GeantVolume& volume)
 {
-    auto result = volid_to_volume_.insert({id, volume});
+    volid_to_volume_.insert({id, volume});
 }
 //---------------------------------------------------------------------------//
 /*!
  * Add pair <elem_id, element> to the elemid_to_element_ map
  */
-void GeantGeometryMap::add_element(elem_id id, GeantElement& element)
+void GeantGeometryMap::add_element(elem_id id, const GeantElement& element)
 {
-    auto result = elemid_to_element_.insert({id, element});
+    elemid_to_element_.insert({id, element});
 }
 
 //---------------------------------------------------------------------------//
@@ -103,7 +102,7 @@ void GeantGeometryMap::add_element(elem_id id, GeantElement& element)
  */
 void GeantGeometryMap::link_volume_material(vol_id volid, mat_id matid)
 {
-    auto result = volid_to_matid_.insert({volid, matid});
+    volid_to_matid_.insert({volid, matid});
 }
 
 //---------------------------------------------------------------------------//

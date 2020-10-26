@@ -77,7 +77,7 @@ Name              | PDG Code    | Mass [MeV] | Charge [e] | Decay [1/s]
     }
 
     // Print volume / material list
-    auto map = geometry->volid_to_matid_map();
+    const auto& map = geometry->volid_to_matid_map();
 
     cout << endl;
     cout << "Loaded " << map.size() << " volumes from `" << argv[1] << "`.\n";

@@ -12,9 +12,6 @@
 #include <vector>
 #include <memory>
 
-#include <G4PhysicsVectorType.hh>
-#include <G4ProcessType.hh>
-
 #include "io/GeantPhysicsTable.hh"
 
 class TFile;
@@ -28,8 +25,6 @@ class G4ParticleDefinition;
 class G4PhysicsTable;
 
 using celeritas::GeantPhysicsTable;
-using celeritas::GeantPhysicsVectorType;
-using celeritas::GeantProcessType;
 
 //---------------------------------------------------------------------------//
 /*!
@@ -49,7 +44,7 @@ class GeantPhysicsTableWriter
 
     // Write the physics tables from a given particle and physics process
     // Expected to be called within a G4ParticleTable iterator loop
-    void add_physics_tables(G4VProcess&                 process,
+    void add_physics_tables(const G4VProcess&           process,
                             const G4ParticleDefinition& particle);
 
   private:
@@ -68,13 +63,6 @@ class GeantPhysicsTableWriter
                           std::string     table_type_name,
                           std::string     table_name,
                           std::string     xs_or_eloss);
-    // Safely switch from G4PhysicsVectorType to GeantPhysicsVectorType
-    const GeantPhysicsVectorType
-    select_geant_physics_vector_type(const G4PhysicsVectorType g4_vector_type);
-    // Safely switch from G4ProcessType to GeantProcessType
-    const GeantProcessType
-    select_geant_process_type(const G4ProcessType g4_process_type);
-
 
   private:
     // TTree created by the constructor

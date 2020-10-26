@@ -35,13 +35,16 @@
 #include "base/Range.hh"
 
 using namespace geant_exporter;
+using celeritas::elem_id;
 using celeritas::GeantElement;
 using celeritas::GeantGeometryMap;
 using celeritas::GeantMaterial;
 using celeritas::GeantMaterialState;
 using celeritas::GeantParticle;
 using celeritas::GeantVolume;
+using celeritas::mat_id;
 using celeritas::real_type;
+using celeritas::vol_id;
 using std::cout;
 using std::endl;
 
@@ -114,54 +117,35 @@ void store_physics_tables(TFile* root_file, G4ParticleTable* particle_table)
 
     cout << "Exporting physics tables..." << endl;
 
-    G4ParticleTable::G4PTblDicIterator* particle_iterator
-        = G4ParticleTable::GetParticleTable()->GetIterator();
-    particle_iterator->reset();
+    G4ParticleTable::G4PTblDicIterator& particle_iterator
+        = *(G4ParticleTable::GetParticleTable()->GetIterator());
+    particle_iterator.reset();
 
-    while ((*particle_iterator)())
+    while (particle_iterator())
     {
-        G4ParticleDefinition* g4_particle_def = particle_iterator->value();
+        const G4ParticleDefinition& g4_particle_def
+            = *(particle_iterator.value());
 
         // Skip "dummy" particles: generic ion and geantino
-        if (g4_particle_def->GetPDGEncoding() == 0)
+        if (g4_particle_def.GetPDGEncoding() == 0)
             continue;
 
         std::cout << "=============" << std::endl;
-        std::cout << g4_particle_def->GetParticleName() << std::endl;
+        std::cout << g4_particle_def.GetParticleName() << std::endl;
         std::cout << "=============" << std::endl;
 
-        G4ProcessVector* process_list
-            = (g4_particle_def->GetProcessManager())->GetProcessList();
+        const G4ProcessVector& process_list
+            = *(g4_particle_def.GetProcessManager()->GetProcessList());
 
-        for (std::size_t j = 0; j < process_list->size(); j++)
+        for (auto j : celeritas::range(process_list.size()))
         {
-            G4VProcess* process = (*process_list)[j];
-            table_writer.add_physics_tables(*process, *g4_particle_def);
+            const G4VProcess& process = *(process_list)[j];
+            table_writer.add_physics_tables(process, g4_particle_def);
         }
     }
     cout << endl;
 
     root_file->Write();
-}
-
-//---------------------------------------------------------------------------//
-/*!
- * Safely switch from G4State [G4Material.hh] to GeantMaterialState.
- */
-GeantMaterialState select_material_state(const G4State& g4_material_state)
-{
-    switch (g4_material_state)
-    {
-        case G4State::kStateUndefined:
-            return GeantMaterialState::not_defined;
-        case G4State::kStateSolid:
-            return GeantMaterialState::solid;
-        case G4State::kStateLiquid:
-            return GeantMaterialState::liquid;
-        case G4State::kStateGas:
-            return GeantMaterialState::gas;
-    }
-    CHECK(false);
 }
 
 //---------------------------------------------------------------------------//
@@ -173,9 +157,9 @@ GeantMaterialState select_material_state(const G4State& g4_material_state)
 void loop_volumes(GeantGeometryMap&      geometry,
                   const G4LogicalVolume& logical_volume)
 {
-    GeantVolume              volume;
-    GeantGeometryMap::vol_id volume_id;
-    GeantGeometryMap::mat_id material_id;
+    GeantVolume volume;
+    vol_id      volume_id;
+    mat_id      material_id;
 
     volume.name = logical_volume.GetName();
     volume_id   = logical_volume.GetInstanceID();
@@ -193,6 +177,26 @@ void loop_volumes(GeantGeometryMap&      geometry,
         loop_volumes(geometry,
                      *logical_volume.GetDaughter(i)->GetLogicalVolume());
     }
+}
+
+//---------------------------------------------------------------------------//
+/*!
+ * Safely switch from G4State [G4Material.hh] to GeantMaterialState.
+ */
+GeantMaterialState to_material_state(const G4State& g4_material_state)
+{
+    switch (g4_material_state)
+    {
+        case G4State::kStateUndefined:
+            return GeantMaterialState::not_defined;
+        case G4State::kStateSolid:
+            return GeantMaterialState::solid;
+        case G4State::kStateLiquid:
+            return GeantMaterialState::liquid;
+        case G4State::kStateGas:
+            return GeantMaterialState::gas;
+    }
+    CHECK(false);
 }
 
 //---------------------------------------------------------------------------//
@@ -230,10 +234,10 @@ void store_geometry(TFile*                       root_file,
 
         // Populate material information
         GeantMaterial material;
-        material.name        = g4material->GetName();
-        material.state       = select_material_state(g4material->GetState());
-        material.temperature = g4material->GetTemperature(); // [K]
-        material.density     = g4material->GetDensity() / (g / cm3);
+        material.name             = g4material->GetName();
+        material.state            = to_material_state(g4material->GetState());
+        material.temperature      = g4material->GetTemperature(); // [K]
+        material.density          = g4material->GetDensity() / (g / cm3);
         material.electron_density = g4material->GetTotNbOfElectPerVolume()
                                     / (1. / cm3);
         material.atomic_density = g4material->GetTotNbOfAtomsPerVolume()
@@ -254,7 +258,7 @@ void store_geometry(TFile*                       root_file,
             element.radiation_length_tsai = g4element->GetfRadTsai() / cm;
             element.coulomb_factor        = g4element->GetfCoulomb();
 
-            GeantGeometryMap::elem_id elid = g4element->GetIndex();
+            elem_id   elid = g4element->GetIndex();
             real_type frac = g4material->GetFractionVector()[j];
 
             // Add element to the global element map

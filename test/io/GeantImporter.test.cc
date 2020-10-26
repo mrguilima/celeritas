@@ -17,6 +17,7 @@
 #include "gtest/Main.hh"
 #include "gtest/Test.hh"
 
+using celeritas::elem_id;
 using celeritas::GeantGeometryMap;
 using celeritas::GeantImporter;
 using celeritas::GeantMaterial;
@@ -29,11 +30,13 @@ using celeritas::GeantProcess;
 using celeritas::GeantProcessType;
 using celeritas::GeantTableType;
 using celeritas::GeantVolume;
+using celeritas::mat_id;
 using celeritas::ParticleDef;
 using celeritas::ParticleDefId;
 using celeritas::ParticleParams;
 using celeritas::PDGNumber;
 using celeritas::real_type;
+using celeritas::vol_id;
 
 //---------------------------------------------------------------------------//
 // TEST HARNESS
@@ -126,7 +129,7 @@ TEST_F(GeantImporterTest, import_geometry)
     EXPECT_EQ(map.size(), 4257);
 
     // Fetch a given GeantVolume provided a vol_id
-    GeantGeometryMap::vol_id volid  = 10;
+    vol_id                   volid  = 10;
     GeantVolume              volume = data.geometry->get_volume(volid);
     EXPECT_EQ(volume.name, "TrackerPatchPannel");
 

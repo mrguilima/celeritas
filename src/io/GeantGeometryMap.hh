@@ -13,6 +13,7 @@
 
 #include "GeantMaterial.hh"
 #include "GeantVolume.hh"
+#include "GeantGeometryMapTypes.hh"
 
 namespace celeritas
 {
@@ -31,13 +32,6 @@ namespace celeritas
 class GeantGeometryMap
 {
   public:
-    //@{
-    //!
-    using mat_id  = int;
-    using vol_id  = int;
-    using elem_id = int;
-    //@}
-
     // Construct/destruct with defaults
     GeantGeometryMap();
     ~GeantGeometryMap();
@@ -45,13 +39,13 @@ class GeantGeometryMap
     // >>> READ
 
     // Find material id given volume id
-    const mat_id get_matid(vol_id& volume_id) const;
+    const mat_id get_matid(vol_id volume_id) const;
     // Find GeantVolume given volume id
-    const GeantVolume& get_volume(vol_id& volume_id) const;
+    const GeantVolume& get_volume(vol_id volume_id) const;
     // Find GeantMaterial given a material id
-    const GeantMaterial& get_material(mat_id& material_id) const;
+    const GeantMaterial& get_material(mat_id material_id) const;
     // Find GeantElement given element id
-    const GeantElement& get_element(elem_id& element_id) const;
+    const GeantElement& get_element(elem_id element_id) const;
 
     // Return a reference to the private member volid_to_matid_ map
     const std::map<vol_id, mat_id>& volid_to_matid_map();
@@ -59,11 +53,11 @@ class GeantGeometryMap
     // >>> WRITE (only used by geant-exporter app)
 
     // Add pair <mat_id, material> to the map
-    void add_material(mat_id id, GeantMaterial& material);
+    void add_material(mat_id id, const GeantMaterial& material);
     // Add pair <vol_id, volume> to the map
-    void add_volume(vol_id id, GeantVolume& volume);
+    void add_volume(vol_id id, const GeantVolume& volume);
     // Add pair <elem_id, element> to the map
-    void add_element(elem_id id, GeantElement& element);
+    void add_element(elem_id id, const GeantElement& element);
     // Add pair <vol_id, mat_id> to the map
     void link_volume_material(vol_id volid, mat_id matid);
 

@@ -19,16 +19,14 @@
 #include <G4VMultipleScattering.hh>
 #include <G4SystemOfUnits.hh>
 
+#include "GeantPhysicsTableWriterHelper.hh"
 #include "io/GeantPhysicsTable.hh"
 #include "io/GeantPhysicsVector.hh"
 #include "io/GeantTableType.hh"
-#include "io/GeantTableTypeHelper.hh"
 #include "io/GeantProcessType.hh"
 #include "io/GeantProcess.hh"
-#include "io/GeantProcessHelper.hh"
 #include "io/GeantPhysicsVectorType.hh"
 #include "io/GeantModel.hh"
-#include "io/GeantModelHelper.hh"
 #include "base/Range.hh"
 #include "base/Types.hh"
 
@@ -40,9 +38,11 @@ using celeritas::GeantProcessType;
 using celeritas::GeantTableType;
 using celeritas::PDGNumber;
 using celeritas::real_type;
-using celeritas::select_geant_model;
-using celeritas::select_geant_process;
-using celeritas::select_geant_table_type;
+using geant_exporter::to_geant_model;
+using geant_exporter::to_geant_physics_vector_type;
+using geant_exporter::to_geant_process;
+using geant_exporter::to_geant_process_type;
+using geant_exporter::to_geant_table_type;
 
 //---------------------------------------------------------------------------//
 /*!
@@ -60,34 +60,33 @@ GeantPhysicsTableWriter::GeantPhysicsTableWriter(TFile* root_file)
  * Add physics tables to the ROOT file from given process and particle
  */
 void GeantPhysicsTableWriter::add_physics_tables(
-    G4VProcess& process, const G4ParticleDefinition& particle)
+    const G4VProcess& process, const G4ParticleDefinition& particle)
 {
     // Process name
     std::string process_name = process.GetProcessName();
 
     // Write this->table_
-    table_.process_type = select_geant_process_type(process.GetProcessType());
-    table_.process      = select_geant_process(process_name);
+    table_.process_type = to_geant_process_type(process.GetProcessType());
+    table_.process      = to_geant_process(process_name);
     table_.particle     = PDGNumber(particle.GetPDGEncoding());
 
-    if (auto em_process = dynamic_cast<G4VEmProcess*>(&process))
+    if (auto em_process = dynamic_cast<const G4VEmProcess*>(&process))
     {
         // G4VEmProcess tables
         this->fill_em_tables(*em_process);
     }
-    else if (auto energy_loss = dynamic_cast<G4VEnergyLossProcess*>(&process))
+    else if (auto energy_loss
+             = dynamic_cast<const G4VEnergyLossProcess*>(&process))
     {
         // G4VEnergyLossProcess tables
         this->fill_energy_loss_tables(*energy_loss);
     }
-
     else if (auto multiple_scattering
-             = dynamic_cast<G4VMultipleScattering*>(&process))
+             = dynamic_cast<const G4VMultipleScattering*>(&process))
     {
         // G4VMultipleScattering tables
         this->fill_multiple_scattering_tables(*multiple_scattering);
     }
-
     else
     {
         std::cout << "  No available code for " << process_name << std::endl;
@@ -108,7 +107,7 @@ void GeantPhysicsTableWriter::fill_em_tables(const G4VEmProcess& em_process)
         std::string model_name = em_process.GetModelByIndex(i)->GetName();
 
         // Write table_
-        table_.model = select_geant_model(model_name);
+        table_.model = to_geant_model(model_name);
 
         std::string table_name = process_name + "_" + model_name;
 
@@ -140,7 +139,7 @@ void GeantPhysicsTableWriter::fill_energy_loss_tables(
         std::string model_name = eloss_process.GetModelByIndex(i)->GetName();
 
         // Write table_
-        table_.model = select_geant_model(model_name);
+        table_.model = to_geant_model(model_name);
 
         std::string table_name = process_name + "_" + model_name;
 
@@ -223,7 +222,7 @@ void GeantPhysicsTableWriter::fill_multiple_scattering_tables(
                 std::string model_name = model->GetName();
 
                 // Write table_
-                table_.model = select_geant_model(model_name);
+                table_.model = to_geant_model(model_name);
 
                 std::string table_name      = process_name + "_" + model_name;
                 std::string table_type_name = "LambdaMod"
@@ -248,22 +247,15 @@ void GeantPhysicsTableWriter::fill_physics_vectors(G4PhysicsTable& table,
     table_.physics_vectors.clear();
 
     // Loop over G4PhysicsTable
-    for (auto phys_vector : table)
+    for (const auto* phys_vector : table)
     {
         GeantPhysicsVector geant_physics_vector;
 
         // Populate GeantPhysicsVector and push it back to this->table_
         geant_physics_vector.vector_type
-            = this->select_geant_physics_vector_type(phys_vector->GetType());
+            = to_geant_physics_vector_type(phys_vector->GetType());
 
-        if (xs_or_eloss == "xs")
-        {
-            geant_physics_vector.is_eloss = false;
-        }
-        else
-        {
-            geant_physics_vector.is_eloss = true;
-        }
+        geant_physics_vector.is_eloss = (xs_or_eloss != "xs");
 
         for (auto j : celeritas::range(phys_vector->GetVectorLength()))
         {
@@ -301,7 +293,7 @@ void GeantPhysicsTableWriter::fill_tables_tree(G4PhysicsTable& table,
     REQUIRE(&table);
 
     // Table type
-    table_.table_type = select_geant_table_type(table_type_name);
+    table_.table_type = to_geant_table_type(table_type_name);
 
     // Populate this->table_.physics_vectors and fill the TTree
     fill_physics_vectors(table, xs_or_eloss);
@@ -310,73 +302,4 @@ void GeantPhysicsTableWriter::fill_tables_tree(G4PhysicsTable& table,
     // Print message
     table_name = table_type_name + "_" + table_name;
     std::cout << "  Added " << table_name << std::endl;
-}
-
-//---------------------------------------------------------------------------//
-/*!
- * Safely switch from G4PhysicsVectorType to GeantPhysicsVectorType.
- * [See G4PhysicsVectorType.hh]
- */
-const GeantPhysicsVectorType
-GeantPhysicsTableWriter::select_geant_physics_vector_type(
-    const G4PhysicsVectorType g4_vector_type)
-{
-    switch (g4_vector_type)
-    {
-        case G4PhysicsVectorType::T_G4PhysicsVector:
-            return GeantPhysicsVectorType::base;
-        case G4PhysicsVectorType::T_G4PhysicsLinearVector:
-            return GeantPhysicsVectorType::linear;
-        case G4PhysicsVectorType::T_G4PhysicsLogVector:
-            return GeantPhysicsVectorType::log;
-        case G4PhysicsVectorType::T_G4PhysicsLnVector:
-            return GeantPhysicsVectorType::ln;
-        case G4PhysicsVectorType::T_G4PhysicsFreeVector:
-            return GeantPhysicsVectorType::free;
-        case G4PhysicsVectorType::T_G4PhysicsOrderedFreeVector:
-            return GeantPhysicsVectorType::ordered_free;
-        case G4PhysicsVectorType::T_G4LPhysicsFreeVector:
-            return GeantPhysicsVectorType::low_energy_free;
-    }
-    CHECK(false);
-}
-
-//---------------------------------------------------------------------------//
-/*!
- * Safely switch from G4PhysicsVectorType to GeantPhysicsVectorType.
- * [See G4PhysicsVectorType.hh]
- */
-const GeantProcessType GeantPhysicsTableWriter::select_geant_process_type(
-    const G4ProcessType g4_process_type)
-{
-    switch (g4_process_type)
-    {
-        case G4ProcessType::fNotDefined:
-            return GeantProcessType::not_defined;
-        case G4ProcessType::fTransportation:
-            return GeantProcessType::transportation;
-        case G4ProcessType::fElectromagnetic:
-            return GeantProcessType::electromagnetic;
-        case G4ProcessType::fOptical:
-            return GeantProcessType::optical;
-        case G4ProcessType::fHadronic:
-            return GeantProcessType::hadronic;
-        case G4ProcessType::fPhotolepton_hadron:
-            return GeantProcessType::photolepton_hadron;
-        case G4ProcessType::fDecay:
-            return GeantProcessType::decay;
-        case G4ProcessType::fGeneral:
-            return GeantProcessType::general;
-        case G4ProcessType::fParameterisation:
-            return GeantProcessType::parameterisation;
-        case G4ProcessType::fUserDefined:
-            return GeantProcessType::user_defined;
-        case G4ProcessType::fParallel:
-            return GeantProcessType::parallel;
-        case G4ProcessType::fPhonon:
-            return GeantProcessType::phonon;
-        case G4ProcessType::fUCN:
-            return GeantProcessType::ucn;
-    }
-    CHECK(false);
 }

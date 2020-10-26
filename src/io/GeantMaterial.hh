@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "GeantElement.hh"
-#include "GeantGeometryMap.hh"
+#include "GeantGeometryMapTypes.hh"
 #include "base/Types.hh"
 
 namespace celeritas
@@ -44,16 +44,16 @@ enum class GeantMaterialState
  */
 struct GeantMaterial
 {
-    std::string              name;
-    GeantMaterialState       state;
-    real_type                temperature;        // [K]
-    real_type                density;            // [g/cm^3]
-    real_type                electron_density;   // [1/cm^3]
-    real_type                atomic_density;     // [1/cm^3]
-    real_type                radiation_length;   // [cm]
-    real_type                nuclear_int_length; // [cm]
-    std::vector<int>         elements;
-    std::map<int, real_type> fractions;
+    std::string                  name;
+    GeantMaterialState           state;
+    real_type                    temperature;        // [K]
+    real_type                    density;            // [g/cm^3]
+    real_type                    electron_density;   // [1/cm^3]
+    real_type                    atomic_density;     // [1/cm^3]
+    real_type                    radiation_length;   // [cm]
+    real_type                    nuclear_int_length; // [cm]
+    std::vector<elem_id>         elements;
+    std::map<elem_id, real_type> fractions;
 };
 
 //---------------------------------------------------------------------------//
