@@ -255,8 +255,9 @@ void store_geometry(TFile*                       root_file,
             element.name                  = g4element->GetName();
             element.atomic_number         = g4element->GetZ();
             element.atomic_mass           = g4element->GetAtomicMassAmu();
-            element.radiation_length_tsai = g4element->GetfRadTsai() / cm;
-            element.coulomb_factor        = g4element->GetfCoulomb();
+            element.radiation_length_tsai = g4element->GetfRadTsai()
+                                            / (g / cm2);
+            element.coulomb_factor = g4element->GetfCoulomb();
 
             elem_id   elid = g4element->GetIndex();
             real_type frac = g4material->GetFractionVector()[j];
@@ -264,7 +265,7 @@ void store_geometry(TFile*                       root_file,
             // Add element to the global element map
             geometry.add_element(elid, element);
 
-            // Connect global element to a given material
+            // Add global element to the map of elements of a given material
             material.elements_fractions.insert({elid, frac});
         }
         // Add material to the global material map
