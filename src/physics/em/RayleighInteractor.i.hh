@@ -12,11 +12,11 @@ namespace celeritas
 /*!
  * Construct with shared and state data.
  */
-CELER_FUNCTION
-RayleighInteractor::RayleighInteractor(const RayleighInteractorPointers& shared,
-                                       const ParticleTrackView& particle,
-                                       const Real3&             inc_direction,
-                                       SecondaryAllocatorView&  allocate)
+CELER_FUNCTION RayleighInteractor::RayleighInteractor(
+    const RayleighInteractorPointers& shared,
+    const ParticleTrackView&          particle,
+    const Real3&                      inc_direction,
+    SecondaryAllocatorView&           allocate)
     : shared_(shared)
     , inc_energy_(particle.energy().value())
     , inc_direction_(inc_direction)
@@ -29,12 +29,16 @@ RayleighInteractor::RayleighInteractor(const RayleighInteractorPointers& shared,
 
 //---------------------------------------------------------------------------//
 /*!
- * Sample using the XXX model.
+ * Sample using the G4LivermoreRayleighModel model.
  */
 template<class Engine>
 CELER_FUNCTION Interaction RayleighInteractor::operator()(Engine& rng)
 {
-    // Allocate space for XXX (electron, multiple particles, ...)
+    printf("RayleighInteractor::operator() called!\n");
+
+    const real_type incph_energy = inc_energy_.value();
+
+    // Allocate space for secondary XXX (electron, multiple particles, ...)
     Secondary* secondaries = this->allocate_(0); // XXX
     if (secondaries == nullptr)
     {
@@ -44,6 +48,31 @@ CELER_FUNCTION Interaction RayleighInteractor::operator()(Engine& rng)
 
     // XXX sample
     (void)sizeof(rng);
+
+    // /** this code was commented out in Geant4
+    // // absorption of low-energy gamma
+    // if (photonEnergy0 <= lowEnergyLimit)
+    //   {
+    //     fParticleChange->ProposeTrackStatus(fStopAndKill);
+    //     fParticleChange->SetProposedKineticEnergy(0.);
+    //     fParticleChange->ProposeLocalEnergyDeposit(photonEnergy0);
+    //     return ;
+    //   }
+    // */
+
+    /** this code from Geant4, needs to be adapted
+     //.. Select randomly one element in the current material
+     //const G4ParticleDefinition* particle =  aDynamicGamma->GetDefinition();
+     const G4Element* elm = SelectRandomAtom(couple,particle,photonEnergy0);
+     G4int Z = G4lrint(elm->GetZ());
+
+     // Sample the angle of the scattered photon
+
+     G4ThreeVector photonDirection =
+         GetAngularDistribution()->SampleDirection(aDynamicGamma, photonEnergy0,
+                                                   Z, couple->GetMaterial());
+     fParticleChange->ProposeMomentumDirection(photonDirection);
+    */
 
     // Construct interaction for change to primary (incident) particle
     Interaction result;
@@ -57,6 +86,7 @@ CELER_FUNCTION Interaction RayleighInteractor::operator()(Engine& rng)
     secondaries[0].energy    = units::MevEnergy{0}; // XXX
     secondaries[0].direction = {0, 0, 0};           // XXX
 
+    // Cutoff for secondary production happens *after* the interaction code.
     return result;
 }
 

@@ -31,7 +31,7 @@ namespace celeritas
 class RayleighInteractor
 {
   public:
-    // Construct with shared and state data
+    // Construct from shared and state data
     inline CELER_FUNCTION
     RayleighInteractor(const RayleighInteractorPointers& shared,
                        const ParticleTrackView&          particle,
@@ -47,7 +47,7 @@ class RayleighInteractor
     //! Minimum incident energy for this model to be valid
     static CELER_CONSTEXPR_FUNCTION units::MevEnergy min_incident_energy()
     {
-        return units::MevEnergy{0}; // XXX
+        return units::MevEnergy{0.000010}; // 10eV
     }
 
     //! Maximum incident energy for this model to be valid
