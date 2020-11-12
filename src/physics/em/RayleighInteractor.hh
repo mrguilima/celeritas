@@ -14,29 +14,53 @@
 #include "physics/base/SecondaryAllocatorView.hh"
 #include "physics/base/Secondary.hh"
 #include "physics/base/Units.hh"
+#include "physics/material/MaterialTrackView.hh"
+#include "physics/material/ElementSelector.hh"
 #include "RayleighInteractorPointers.hh"
 
 namespace celeritas
 {
 //---------------------------------------------------------------------------//
 /*!
- * Brief class description.
+ * Livermore model for the Rayleigh scattering of photons.
  *
- * This is a model for XXXX process. Additional description
+ * Additional description
  *
  * \note This performs the same sampling routine as in Geant4's
- * XXXX class, as documented in section XXX of the Geant4 Physics
- * Reference (release 10.6).
+ * G4LivermoreRayleigh class, as documented in section XXX of the Geant4
+ * Physics Reference (release 10.6).
  */
 class RayleighInteractor
 {
+    // Example functor for calculating cross section from actual atomic
+    // properties and particle state
+    struct RayleighMicroXs
+    {
+        RayleighMicroXs(const MaterialParamsPointers& mats,
+                        units::MevEnergy              energy)
+            : mats_(mats), inv_energy_(1 / energy.value())
+        {
+        }
+
+        real_type operator()(ElementDefId el_id) const
+        {
+            REQUIRE(el_id);
+            ElementView el(mats_, el_id);
+            return el.cbrt_z() * inv_energy_;
+        }
+
+        const MaterialParamsPointers& mats_;
+        real_type                     inv_energy_;
+    };
+
   public:
     // Construct from shared and state data
     inline CELER_FUNCTION
     RayleighInteractor(const RayleighInteractorPointers& shared,
                        const ParticleTrackView&          particle,
                        const Real3&                      inc_direction,
-                       SecondaryAllocatorView&           allocate);
+                       SecondaryAllocatorView&           allocate,
+                       const MaterialTrackView&          material);
 
     // Sample an interaction with the given RNG
     template<class Engine>
@@ -53,18 +77,27 @@ class RayleighInteractor
     //! Maximum incident energy for this model to be valid
     static CELER_CONSTEXPR_FUNCTION units::MevEnergy max_incident_energy()
     {
-        return units::MevEnergy{0}; // XXX
+        return units::MevEnergy{1000.}; // 1 GeV
     }
 
   private:
-    // Shared constant physics properties
+    //! shared constant physics properties
     const RayleighInteractorPointers& shared_;
-    // Incident gamma energy
+
+    //! Incident gamma energy
     const units::MevEnergy inc_energy_;
-    // Incident direction
+
+    //! Incident direction
     const Real3& inc_direction_;
-    // Allocate space for one or more secondary particles
+
+    //! Allocate space for one or more secondary particles
     SecondaryAllocatorView& allocate_;
+
+    //! Material
+    const MaterialTrackView& material_;
+
+    //! Atom selection utility
+    // ElementSelector select_elem_;
 };
 
 //---------------------------------------------------------------------------//
