@@ -52,10 +52,21 @@ class GeoParamsDeviceTest : public GeoParamsTest
 TEST_F(GeoParamsHostTest, accessors)
 {
     const auto& geom = *(this->params());
-    EXPECT_EQ(2, geom.num_volumes());
-    EXPECT_EQ(2, geom.max_depth());
-    EXPECT_EQ("Detector", geom.id_to_label(VolumeId{0}));
-    EXPECT_EQ("World", geom.id_to_label(VolumeId{1}));
+    EXPECT_EQ(20279, geom.num_volumes());
+    EXPECT_EQ(16, geom.max_depth());
+    EXPECT_EQ("OWWL0x7f4a8f617500",
+              geom.id_to_label(VolumeId{
+                  static_cast<unsigned int>(geom.num_volumes()) - 2}));
+    EXPECT_EQ("OCMS0x7f4a9a758e00",
+              geom.id_to_label(VolumeId{
+                  static_cast<unsigned int>(geom.num_volumes()) - 1}));
+
+    // print geometry information from CPU
+    unsigned int nvols = geom.num_volumes();
+    for (unsigned int i = 0; i < nvols; ++i)
+    {
+        std::cout << i << "" << geom.id_to_label(VolumeId{i}) << std::endl;
+    }
 }
 
 //---------------------------------------------------------------------------//
@@ -64,12 +75,20 @@ TEST_F(GeoParamsHostTest, accessors)
 TEST_F(GeoParamsDeviceTest, accessors)
 {
     const auto& geom = *(this->params());
-    EXPECT_EQ(2, geom.num_volumes());
-    EXPECT_EQ(2, geom.max_depth());
-    EXPECT_EQ("Detector", geom.id_to_label(VolumeId{0}));
-    EXPECT_EQ("World", geom.id_to_label(VolumeId{1}));
+    EXPECT_EQ(20279, geom.num_volumes());
+    EXPECT_EQ(16, geom.max_depth());
+    EXPECT_EQ("OWWL0x7f4a8f617500",
+              geom.id_to_label(VolumeId{
+                  static_cast<unsigned int>(geom.num_volumes()) - 2}));
+    EXPECT_EQ("OCMS0x7f4a9a758e00",
+              geom.id_to_label(VolumeId{
+                  static_cast<unsigned int>(geom.num_volumes()) - 1}));
+    // EXPECT_EQ(2, geom.num_volumes());
+    // EXPECT_EQ(2, geom.max_depth());
+    // EXPECT_EQ("Detector", geom.id_to_label(VolumeId{0}));
+    // EXPECT_EQ("World", geom.id_to_label(VolumeId{1}));
 
     // print geometry information from device
-    vecgeom::cxx::CudaManager::Instance().PrintGeometry();
+    // vecgeom::cxx::CudaManager::Instance().PrintGeometry();
 }
 #endif

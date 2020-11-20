@@ -27,7 +27,7 @@ class GeoParamsTest : public celeritas::Test
     static void SetUpTestCase()
     {
         std::string test_file
-            = celeritas::Test::test_data_path("geometry", "twoBoxes.gdml");
+            = celeritas::Test::test_data_path("geometry", "cms2018.gdml");
         geom_ = std::make_shared<GeoParams>(test_file.c_str());
     }
 
