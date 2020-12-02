@@ -69,14 +69,14 @@ VGGTestOutput vgg_test(VGGTestInput input)
     // Run kernel
     celeritas::KernelParamCalculator calc_launch_params;
     auto                             params = calc_launch_params(init.size());
-    //    vgg_test_kernel<<<params.grid_size, params.block_size>>>(
-    vgg_test_kernel<<<1, 1>>>(input.shared,
-                              input.state,
-                              init.size(),
-                              raw_pointer_cast(init.data()),
-                              input.max_segments,
-                              raw_pointer_cast(ids.data()),
-                              raw_pointer_cast(distances.data()));
+    vgg_test_kernel<<<params.grid_size, params.block_size>>>(
+        input.shared,
+        input.state,
+        init.size(),
+        raw_pointer_cast(init.data()),
+        input.max_segments,
+        raw_pointer_cast(ids.data()),
+        raw_pointer_cast(distances.data()));
     CELER_CUDA_CALL(cudaDeviceSynchronize());
 
     // Copy result back to CPU
