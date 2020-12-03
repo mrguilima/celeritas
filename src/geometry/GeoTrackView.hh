@@ -69,7 +69,7 @@ class GeoTrackView
 
     // A tiny push to make sure tracks go over boundaries, to minimize chances
     // of getting stuck at boundaries
-    CELER_CONSTEXPR_FUNCTION static real_type tolerance() { return 1e-12; }
+    CELER_CONSTEXPR_FUNCTION static real_type tolerance() { return 1e-15; }
 
   private:
     //@{
@@ -95,6 +95,7 @@ class GeoTrackView
     static inline CELER_FUNCTION NavState&
                                  get_nav_state(void* state, int vgmaxdepth, ThreadId thread);
 
+  public:
     //! Get a reference to the current volume
     inline CELER_FUNCTION const Volume& volume() const;
 };

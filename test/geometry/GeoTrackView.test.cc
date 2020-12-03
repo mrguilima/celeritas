@@ -16,6 +16,8 @@
 #    include "GeoTrackView.test.hh"
 #endif
 
+#include "base/ArrayIO.hh"
+
 using namespace celeritas;
 using namespace celeritas_test;
 
@@ -90,38 +92,53 @@ TEST_F(GeoTrackViewHostTest, track_line)
 
     {
         // Track from outside edge fails
-        geo = {{24, 0, 0}, {1, 0, 0}};
-        geo.find_next_step();
-        std::cout << "dist2out: " << geo.next_step() << std::endl;
+        geo = {{24, 0, 0}, {-1, 0, 0}};
         EXPECT_EQ(true, geo.is_outside());
     }
 
     {
         // But it works when you move juuust inside
-        geo = {{24 - 1e-6, 0, 0}, {-1, 0, 0}};
+        geo = {{24 - 1e-3, 0, 0}, {-1, 0, 0}};
         EXPECT_EQ(false, geo.is_outside());
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // World
         geo.find_next_step();
-        EXPECT_SOFT_EQ(45.0 - 1e-6, geo.next_step());
+        EXPECT_SOFT_EQ(20.5 - 1e-6, geo.next_step());
         geo.move_next_step();
-        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // Detector
+        EXPECT_EQ(VolumeId{2}, geo.volume_id()); // Detector
+
+        // debugging
+        geo.volume().Print();
     }
     {
+        std::cerr << " trkLine: spot 1\n";
         // Track from inside detector
-        geo = {{0, 0, 0}, {1, 0, 0}};
-        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // Detector
+        geo = {{5, 5, 5}, {-1, 0, 0}};
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // Detector
 
+        std::cerr << " trkLine: spot 2\n";
+        // debugging
+        std::cerr << "\n === current position: " << geo.pos() << "\n";
+        geo.volume().Print();
+
+        std::cerr << " trkLine: spot 3\n";
         geo.find_next_step();
-        EXPECT_SOFT_EQ(5.0, geo.next_step());
+        std::cerr << " trkLine: spot 4\n";
+        EXPECT_SOFT_EQ(36.0, geo.next_step());
+        std::cerr << " trkLine: spot 5\n";
         geo.move_next_step();
-        EXPECT_SOFT_EQ(5.0, geo.pos()[0]);
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        std::cerr << " trkLine: spot 6\n";
+        EXPECT_SOFT_EQ(-24.0, geo.pos()[0]);
+        std::cerr << " trkLine: spot 7\n";
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // World
+        std::cerr << " trkLine: spot 8\n";
         EXPECT_EQ(false, geo.is_outside());
+        std::cerr << " trkLine: spot 9\n";
 
         geo.find_next_step();
         EXPECT_SOFT_EQ(45.0, geo.next_step());
         geo.move_next_step();
         EXPECT_EQ(true, geo.is_outside());
+        std::cerr << " trkLine: spot 10\n";
     }
 }
 

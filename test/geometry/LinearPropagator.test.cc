@@ -14,6 +14,8 @@
 #    include "LinearPropagator.test.hh"
 #endif
 
+#include "base/ArrayIO.hh"
+
 using namespace celeritas;
 using namespace celeritas_test;
 
@@ -64,10 +66,10 @@ class LinearPropagatorHostTest : public GeoParamsTest
 TEST_F(LinearPropagatorHostTest, accessors)
 {
     const auto& geom = *params();
-    EXPECT_EQ(2, geom.num_volumes());
-    EXPECT_EQ(2, geom.max_depth());
-    EXPECT_EQ("Detector", geom.id_to_label(VolumeId{0}));
-    EXPECT_EQ("World", geom.id_to_label(VolumeId{1}));
+    EXPECT_EQ(11, geom.num_volumes());
+    EXPECT_EQ(4, geom.max_depth());
+    EXPECT_EQ("Shape20x7fafecc185a0", geom.id_to_label(VolumeId{0}));
+    EXPECT_EQ("Shape10x7fafecc16590", geom.id_to_label(VolumeId{1}));
 }
 
 //----------------------------------------------------------------------------//
@@ -80,58 +82,76 @@ TEST_F(LinearPropagatorHostTest, track_line)
     {
         // Track from outside detector, moving right
         geo = {{-6, 0, 0}, {1, 0, 0}};
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        EXPECT_EQ(VolumeId{2}, geo.volume_id()); // World
 
         geo.find_next_step();
-        EXPECT_SOFT_EQ(1.0, geo.next_step());
+        EXPECT_SOFT_EQ(0, geo.next_step());
         propagate();
-        EXPECT_SOFT_EQ(-5.0, geo.pos()[0]);
-        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // Detector
+        EXPECT_SOFT_EQ(-6, geo.pos()[0]);
+        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // Detector
 
         geo.find_next_step();
-        EXPECT_SOFT_EQ(10.0, geo.next_step());
+        EXPECT_SOFT_EQ(1., geo.next_step());
         propagate();
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // World
         EXPECT_EQ(false, geo.is_outside());
 
         geo.find_next_step();
-        EXPECT_SOFT_EQ(45.0, geo.next_step());
+        EXPECT_SOFT_EQ(10., geo.next_step());
         propagate();
-        EXPECT_EQ(true, geo.is_outside());
+        EXPECT_EQ(false, geo.is_outside());
     }
 
     {
         // Track from outside edge fails
-        geo = {{50, 0, 0}, {-1, 0, 0}};
+        geo = {{24, 0, 0}, {-1, 0, 0}};
         EXPECT_EQ(true, geo.is_outside());
     }
 
     {
         // But it works when you move juuust inside
-        geo = {{50 - 1e-6, 0, 0}, {-1, 0, 0}};
+        real_type eps = 1e-6;
+        geo           = {{24 - eps, 0, 0}, {-1, 0, 0}};
         EXPECT_EQ(false, geo.is_outside());
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // World
         geo.find_next_step();
-        EXPECT_SOFT_EQ(45.0 - 1e-6, geo.next_step());
+        EXPECT_SOFT_EQ(17. - eps, geo.next_step());
         propagate();
-        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // Detector
+        EXPECT_EQ(VolumeId{2}, geo.volume_id()); // Detector
+
+        // debugging
+        geo.volume().Print();
     }
     {
+        std::cerr << " trkLine: spot 1\n";
         // Track from inside detector
-        geo = {{0, 0, 0}, {1, 0, 0}};
-        EXPECT_EQ(VolumeId{0}, geo.volume_id()); // Detector
+        geo = {{10, 10, 10}, {-1, 0, 0}};
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // Detector
 
+        std::cerr << " trkLine: spot 2\n";
+        // debugging
+        std::cerr << "\n === current position: " << geo.pos() << "\n";
+        geo.volume().Print();
+
+        std::cerr << " trkLine: spot 3\n";
         geo.find_next_step();
-        EXPECT_SOFT_EQ(5.0, geo.next_step());
+        std::cerr << " trkLine: spot 4\n";
+        EXPECT_SOFT_EQ(34., geo.next_step());
+        std::cerr << " trkLine: spot 5\n";
         propagate();
-        EXPECT_SOFT_EQ(5.0, geo.pos()[0]);
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
-        EXPECT_EQ(false, geo.is_outside());
+        std::cerr << " trkLine: spot 6\n";
+        EXPECT_SOFT_EQ(-24.0, geo.pos()[0]);
+        std::cerr << " trkLine: spot 7\n";
+        EXPECT_EQ(VolumeId{10}, geo.volume_id()); // World
+        std::cerr << " trkLine: spot 8\n";
+        EXPECT_EQ(true, geo.is_outside());
+        std::cerr << " trkLine: spot 9\n";
 
         geo.find_next_step();
         EXPECT_SOFT_EQ(45.0, geo.next_step());
         propagate();
         EXPECT_EQ(true, geo.is_outside());
+        std::cerr << " trkLine: spot 10\n";
     }
 }
 
@@ -145,10 +165,10 @@ TEST_F(LinearPropagatorHostTest, track_intraVolume)
     {
         // Track from outside detector, moving right
         geo = {{-6, 0, 0}, {1, 0, 0}};
-        EXPECT_EQ(VolumeId{1}, geo.volume_id()); // World
+        EXPECT_EQ(VolumeId{2}, geo.volume_id()); // World
 
         geo.find_next_step();
-        EXPECT_SOFT_EQ(1.0, geo.next_step());
+        EXPECT_SOFT_EQ(0, geo.next_step());
 
         // break next step into two
         propagate(0.5 * geo.next_step());

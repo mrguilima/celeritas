@@ -54,10 +54,10 @@ TEST_F(GeoParamsHostTest, accessors)
     const auto& geom = *(this->params());
     EXPECT_EQ(11, geom.num_volumes());
     EXPECT_EQ(4, geom.max_depth());
-    EXPECT_EQ("Envelope0x7fcbd0629e60",
+    EXPECT_EQ("Envelope0x7fafecc14860",
               geom.id_to_label(VolumeId{
                   static_cast<unsigned int>(geom.num_volumes()) - 2}));
-    EXPECT_EQ("World0x7fcbd0629d20",
+    EXPECT_EQ("World0x7fafecc14720",
               geom.id_to_label(VolumeId{
                   static_cast<unsigned int>(geom.num_volumes()) - 1}));
 
@@ -78,10 +78,10 @@ TEST_F(GeoParamsDeviceTest, accessors)
     const auto& geom = *(this->params());
     EXPECT_EQ(11, geom.num_volumes());
     EXPECT_EQ(4, geom.max_depth());
-    EXPECT_EQ("Envelope0x7fcbd0629e60",
+    EXPECT_EQ("Envelope0x7fafecc14860",
               geom.id_to_label(VolumeId{
                   static_cast<unsigned int>(geom.num_volumes()) - 2}));
-    EXPECT_EQ("World0x7fcbd0629d20",
+    EXPECT_EQ("World0x7fafecc14720",
               geom.id_to_label(VolumeId{
                   static_cast<unsigned int>(geom.num_volumes()) - 1}));
 
