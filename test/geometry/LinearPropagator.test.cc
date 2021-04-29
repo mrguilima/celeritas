@@ -7,16 +7,16 @@
 //---------------------------------------------------------------------------//
 #include "geometry/LinearPropagator.hh"
 
-#include "geometry/GeoStateStore.hh"
-
-#include "GeoParamsTest.hh"
-#ifdef CELERITAS_USE_CUDA
-#    include "LinearPropagator.test.hh"
-#endif
-
 #include "base/ArrayIO.hh"
+#include "base/CollectionStateStore.hh"
 #include "comm/Device.hh"
 #include "comm/Logger.hh"
+#include "geometry/GeoParams.hh"
+#include "geometry/GeoInterface.hh"
+#include "celeritas_test.hh"
+
+#include "GeoTestBase.hh"
+#include "LinearPropagator.test.hh"
 
 using namespace celeritas;
 using namespace celeritas_test;
@@ -25,40 +25,23 @@ using namespace celeritas_test;
 // TEST HARNESS
 //---------------------------------------------------------------------------//
 
-class LinearPropagatorHostTest : public GeoParamsTest
+class LinearPropagatorHostTest : public GeoTestBase
 {
   public:
-    using NavState = vecgeom::cxx::NavigationState;
+    using StateStore = CollectionStateStore<GeoStateData, MemSpace::host>;
 
-    void SetUp() override
+    std::string filename() const override { return "fourLevels.gdml"; }
+
+    void SetUp() override { state = StateStore(*this->geo_params(), 1); }
+
+    GeoTrackView make_geo_track_view()
     {
-        int max_depth = this->params()->max_depth();
-        state.reset(NavState::MakeInstance(max_depth));
-        next_state.reset(NavState::MakeInstance(max_depth));
-
-        state_view.size       = 1;
-        state_view.vgmaxdepth = max_depth;
-        state_view.pos        = &this->pos;
-        state_view.dir        = &this->dir;
-        state_view.next_step  = &this->next_step;
-        state_view.vgstate    = this->state.get();
-        state_view.vgnext     = this->next_state.get();
-
-        params_view = this->params()->host_pointers();
-        CELER_ASSERT(params_view.world_volume);
+        return GeoTrackView(
+            this->geo_params()->host_pointers(), state.ref(), ThreadId(0));
     }
 
   protected:
-    // State data
-    Real3                     pos;
-    Real3                     dir;
-    real_type                 next_step;
-    std::unique_ptr<NavState> state;
-    std::unique_ptr<NavState> next_state;
-
-    // Views
-    GeoStatePointers  state_view;
-    GeoParamsPointers params_view;
+    StateStore state;
 };
 
 //---------------------------------------------------------------------------//
@@ -67,7 +50,7 @@ class LinearPropagatorHostTest : public GeoParamsTest
 
 TEST_F(LinearPropagatorHostTest, accessors)
 {
-    const auto& geom = *params();
+    const auto& geom = *geo_params();
     EXPECT_EQ(11, geom.num_volumes());
     EXPECT_EQ(4, geom.max_depth());
 #ifdef VECGEOM_ROOT
@@ -83,7 +66,7 @@ TEST_F(LinearPropagatorHostTest, accessors)
 
 TEST_F(LinearPropagatorHostTest, track_line)
 {
-    GeoTrackView     geo(params_view, state_view, ThreadId(0));
+    GeoTrackView     geo = this->make_geo_track_view();
     LinearPropagator propagate(&geo); // one propagator per track
 
     {
@@ -141,7 +124,7 @@ TEST_F(LinearPropagatorHostTest, track_line)
 
 TEST_F(LinearPropagatorHostTest, track_intraVolume)
 {
-    GeoTrackView     geo(params_view, state_view, ThreadId(0));
+    GeoTrackView     geo = this->make_geo_track_view();
     LinearPropagator propagate(&geo); // one propagator per track
 
     {
@@ -182,46 +165,42 @@ TEST_F(LinearPropagatorHostTest, track_intraVolume)
     }
 }
 
-#if CELERITAS_USE_CUDA
 //---------------------------------------------------------------------------//
 // DEVICE TESTS
 //---------------------------------------------------------------------------//
 
-class LinearPropagatorDeviceTest : public GeoParamsTest
+#define LP_DEVICE_TEST TEST_IF_CELERITAS_CUDA(LinearPropagatorDeviceTest)
+class LP_DEVICE_TEST : public GeoTestBase
 {
+  public:
+    using StateStore = CollectionStateStore<GeoStateData, MemSpace::device>;
+
+    std::string filename() const override { return "fourLevels.gdml"; }
 };
 
-TEST_F(LinearPropagatorDeviceTest, track_lines)
+TEST_F(LP_DEVICE_TEST, track_lines)
 {
-    if (!celeritas::device())
-    {
-        SKIP("CUDA is disabled");
-    }
+    CELER_ASSERT(this->geo_params());
 
-    CELER_ASSERT(this->params());
-
-    // clang-format off
     // Set up test input
     LinPropTestInput input;
-    input.init = {{{100, 100, 100}, {1, 0, 0}},
-                  {{100, 100, -100}, {1, 0, 0}},
-                  {{100, -100, 100}, {1, 0, 0}},
-                  {{100, -100, -100}, {1, 0, 0}},
-                  {{-100, 100, 100}, {-1, 0, 0}},
-                  {{-100, 100, -100}, {-1, 0, 0}},
-                  {{-100, -100, 100}, {-1, 0, 0}},
-                  {{-100, -100, -100}, {-1, 0, 0}}};
-    // clang-format on
-    input.max_segments = 3;
-    input.shared       = this->params()->device_pointers();
+    input.init = {{{10, 10, 10}, {1, 0, 0}},
+                  {{10, 10, -10}, {1, 0, 0}},
+                  {{10, -10, 10}, {1, 0, 0}},
+                  {{10, -10, -10}, {1, 0, 0}},
+                  {{-10, 10, 10}, {-1, 0, 0}},
+                  {{-10, 10, -10}, {-1, 0, 0}},
+                  {{-10, -10, 10}, {-1, 0, 0}},
+                  {{-10, -10, -10}, {-1, 0, 0}}};
+    StateStore device_states(*this->geo_params(), input.init.size());
 
-    GeoStateStore device_states(*this->params(), input.init.size());
-    input.state = device_states.device_pointers();
+    input.max_segments = 3;
+    input.params       = this->geo_params()->device_pointers();
+    input.state        = device_states.ref();
 
     // Run kernel
-    auto output = linProp_test(input);
+    auto output = linprop_test(input);
 
-    // Check results
     // clang-format off
     static const int expected_ids[]
         = { 2, 1, 0, 2, 6, 0, 2, 5, 0, 2, 9, 0,
@@ -231,9 +210,7 @@ TEST_F(LinearPropagatorDeviceTest, track_lines)
            50, 10, 10, 50, 10, 10, 50, 10, 10, 50, 10, 10};
     // clang-format on
 
+    // Check results
     EXPECT_VEC_EQ(expected_ids, output.ids);
     EXPECT_VEC_SOFT_EQ(output.distances, expected_distances);
 }
-
-//---------------------------------------------------------------------------//
-#endif

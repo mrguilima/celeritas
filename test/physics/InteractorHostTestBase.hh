@@ -19,6 +19,8 @@
 #include "physics/base/ModelIdGenerator.hh"
 #include "physics/base/ParticleParams.hh"
 #include "physics/base/ParticleInterface.hh"
+#include "physics/base/CutoffParams.hh"
+#include "physics/base/CutoffInterface.hh"
 #include "physics/base/Secondary.hh"
 #include "physics/base/Units.hh"
 #include "physics/material/MaterialParams.hh"
@@ -39,10 +41,10 @@ namespace celeritas_test
 {
 //---------------------------------------------------------------------------//
 /*!
- * Test harness base class for a host-side Interactor.
+ * Test harness base class for EM physics models.
  *
- * This class initializes host versions of some of the common inputs to an
- * Interactor. It \b cannot be used for testing device instantiations.
+ * \todo Since this now uses Collection objects it's generally safe to use this
+ * to test Models as well as device code -- think about renaming it.
  */
 class InteractorHostTestBase : public celeritas::Test
 {
@@ -59,6 +61,8 @@ class InteractorHostTestBase : public celeritas::Test
     using MaterialId        = celeritas::MaterialId;
     using MaterialParams    = celeritas::MaterialParams;
     using MaterialTrackView = celeritas::MaterialTrackView;
+
+    using CutoffParams = celeritas::CutoffParams;
 
     using Interaction          = celeritas::Interaction;
     using ModelIdGenerator     = celeritas::ModelIdGenerator;
@@ -81,18 +85,31 @@ class InteractorHostTestBase : public celeritas::Test
 
     //!@{
     //! Set and get material properties
-    void                  set_material_params(MaterialParams::Input inp);
-    const MaterialParams& material_params() const;
+    void set_material_params(MaterialParams::Input inp);
+    const std::shared_ptr<const MaterialParams>& material_params() const
+    {
+        CELER_EXPECT(material_params_);
+        return material_params_;
+    }
     //!@}
 
     //!@{
     //! Set and get particle params
-    void                  set_particle_params(ParticleParams::Input inp);
-    const ParticleParams& particle_params() const;
-    std::shared_ptr<const ParticleParams> get_particle_params() const
+    void set_particle_params(ParticleParams::Input inp);
+    const std::shared_ptr<const ParticleParams>& particle_params() const
     {
         CELER_EXPECT(particle_params_);
         return particle_params_;
+    }
+    //!@}
+
+    //!@{
+    //! Set and get cutoff params
+    void set_cutoff_params(CutoffParams::Input inp);
+    const std::shared_ptr<const CutoffParams>& cutoff_params() const
+    {
+        CELER_EXPECT(cutoff_params_);
+        return cutoff_params_;
     }
     //!@}
 
@@ -129,8 +146,12 @@ class InteractorHostTestBase : public celeritas::Test
     //!@}
 
     //!@{
-    //! Random number generator
-    RandomEngine& rng() { return rng_; }
+    //! Get random number generator with clean counter
+    RandomEngine& rng()
+    {
+        rng_.reset_count();
+        return rng_;
+    }
     //!@}
 
     // Check for energy and momentum conservation
@@ -150,9 +171,10 @@ class InteractorHostTestBase : public celeritas::Test
     using SecondaryStackData
         = celeritas::StackAllocatorData<celeritas::Secondary, W, M>;
 
-    std::shared_ptr<MaterialParams> material_params_;
-    std::shared_ptr<ParticleParams> particle_params_;
-    RandomEngine                    rng_;
+    std::shared_ptr<const MaterialParams> material_params_;
+    std::shared_ptr<const ParticleParams> particle_params_;
+    std::shared_ptr<const CutoffParams>   cutoff_params_;
+    RandomEngine                          rng_;
 
     StateStore<celeritas::MaterialStateData> ms_;
     StateStore<celeritas::ParticleStateData> ps_;

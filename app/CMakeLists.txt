@@ -80,10 +80,6 @@ if(CELERITAS_BUILD_DEMOS)
     celeritas
     nlohmann_json::nlohmann_json
   )
-  if(CELERITAS_USE_CUDA)
-    # Celeritas RNG uses CUDA but doesn't propagate RT library
-    target_link_libraries(celeritas_demo_interactor PUBLIC CUDA::cudart)
-  endif()
 
   if(CELERITAS_USE_CUDA)
     add_executable(demo-interactor
@@ -92,7 +88,7 @@ if(CELERITAS_BUILD_DEMOS)
       demo-interactor/KNDemoKernel.cu
       demo-interactor/KNDemoKernel.thrust.cu
     )
-    target_link_libraries(demo-interactor celeritas_demo_interactor CUDA::cudart)
+    target_link_libraries(demo-interactor celeritas_demo_interactor)
 
     if(CELERITAS_BUILD_TESTS)
       set(_driver "${CMAKE_CURRENT_SOURCE_DIR}/demo-interactor/simple-driver.py")
@@ -145,33 +141,27 @@ endif()
 if(CELERITAS_BUILD_DEMOS AND CELERITAS_USE_CUDA AND CELERITAS_USE_VecGeom)
   # Since the demo kernel links against VecGeom, which requires CUDA separable
   # compilation, it cannot be linked directly into an executable.
-  add_library(demo_rasterizer_cuda
+  add_library(celeritas_demo_rasterizer
     demo-rasterizer/RDemoRunner.cc
     demo-rasterizer/RDemoKernel.cu
+    demo-rasterizer/ImageIO.cc
+    demo-rasterizer/ImageStore.cc
   )
-  set_target_properties(demo_rasterizer_cuda PROPERTIES
-    LINKER_LANGUAGE CUDA
-    CUDA_SEPARABLE_COMPILATION ON
-    POSITION_INDEPENDENT_CODE ON
-  )
-  target_link_libraries(demo_rasterizer_cuda
+  target_link_libraries(celeritas_demo_rasterizer
     PRIVATE
-    celeritas
-    VecGeom::vecgeomcuda
-    VecGeom::vecgeomcuda_static
-    nlohmann_json::nlohmann_json
+      celeritas
+      nlohmann_json::nlohmann_json
   )
+  celeritas_link_vecgeom_cuda(celeritas_demo_rasterizer)
 
   # Add the executable
   add_executable(demo-rasterizer
     demo-rasterizer/demo-rasterizer.cc
-    demo-rasterizer/ImageIO.cc
-    demo-rasterizer/ImageStore.cc
   )
   target_link_libraries(demo-rasterizer
     celeritas
     VecGeom::vecgeom
-    demo_rasterizer_cuda
+    celeritas_demo_rasterizer
     nlohmann_json::nlohmann_json
   )
 
@@ -191,6 +181,47 @@ if(CELERITAS_BUILD_DEMOS AND CELERITAS_USE_CUDA AND CELERITAS_USE_VecGeom)
       REQUIRED_FILES "${_driver};${_gdml_inp}"
     )
   endif()
+endif()
+
+#-----------------------------------------------------------------------------#
+# DEMO: full physics loop
+#-----------------------------------------------------------------------------#
+if(CELERITAS_BUILD_DEMOS AND CELERITAS_USE_VecGeom)
+  set(_cuda_src)
+  if(CELERITAS_USE_CUDA)
+    set(_cuda_src
+      demo-loop/LDemoKernel.cu
+    )
+  endif()
+  add_library(celeritas_demo_loop
+    demo-loop/LDemoIO.cc
+    demo-loop/LDemoParams.cc
+    demo-loop/LDemoRun.cc
+    demo-loop/demo-loop.cc
+    ${_cuda_src}
+  )
+
+  if(CELERITAS_USE_CUDA)
+    celeritas_link_vecgeom_cuda(celeritas_demo_loop)
+  endif()
+  target_link_libraries(celeritas_demo_loop
+    PRIVATE
+    celeritas
+    nlohmann_json::nlohmann_json
+    Celeritas::ROOT
+  )
+
+  # Add the executable
+  add_executable(demo-loop
+    demo-loop/demo-loop.cc
+  )
+  target_link_libraries(demo-loop
+    celeritas
+    VecGeom::vecgeom
+    celeritas_demo_loop
+    nlohmann_json::nlohmann_json
+  )
+
 endif()
 
 #-----------------------------------------------------------------------------#

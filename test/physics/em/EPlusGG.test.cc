@@ -52,7 +52,7 @@ class EPlusGGInteractorTest : public celeritas_test::InteractorHostTestBase
               stable},
              {"gamma", pdg::gamma(), zero, zero, stable}});
 
-        const auto& params      = this->particle_params();
+        const auto& params      = *this->particle_params();
         pointers_.positron_id   = params.find(pdg::positron());
         pointers_.gamma_id      = params.find(pdg::gamma());
         pointers_.electron_mass = 0.5109989461;
@@ -213,8 +213,6 @@ TEST_F(EPlusGGInteractorTest, at_rest)
 
 TEST_F(EPlusGGInteractorTest, stress_test)
 {
-    RandomEngine& rng_engine = this->rng();
-
     const int           num_samples = 8192;
     std::vector<double> avg_engine_samples;
 
@@ -222,6 +220,8 @@ TEST_F(EPlusGGInteractorTest, stress_test)
     {
         SCOPED_TRACE("Incident energy: " + std::to_string(inc_e));
         this->set_inc_particle(pdg::positron(), MevEnergy{inc_e});
+
+        RandomEngine&           rng_engine            = this->rng();
         RandomEngine::size_type num_particles_sampled = 0;
 
         // Loop over several incident directions
@@ -251,7 +251,6 @@ TEST_F(EPlusGGInteractorTest, stress_test)
         }
         avg_engine_samples.push_back(double(rng_engine.count())
                                      / double(num_particles_sampled));
-        rng_engine.reset_count();
     }
 
     // PRINT_EXPECTED(avg_engine_samples);

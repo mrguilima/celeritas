@@ -71,6 +71,8 @@ list(APPEND SOURCES
   physics/em/GammaConversionProcess.cc
   physics/em/KleinNishinaModel.cc
   physics/em/MollerBhabhaModel.cc
+  physics/em/RayleighModel.cc
+  physics/em/detail/Rayleigh.cc
   physics/em/SeltzerBergerModel.cc
   physics/em/detail/Utils.cc
   physics/grid/ValueGridBuilder.cc
@@ -78,7 +80,7 @@ list(APPEND SOURCES
   physics/grid/ValueGridInterface.cc
   physics/material/MaterialParams.cc
   physics/material/detail/Utils.cc
-  random/cuda/RngStateStore.cc
+  random/RngInterface.cc
   sim/SimStateStore.cc
 )
 
@@ -91,14 +93,16 @@ if(CELERITAS_USE_CUDA)
     physics/em/detail/KleinNishina.cu
     physics/em/detail/MollerBhabha.cu
     physics/em/detail/LivermorePE.cu
-    random/cuda/detail/RngStateInit.cu
+    physics/em/detail/Rayleigh.cu
+    random/detail/RngStateInit.cu
     sim/detail/SimStateInit.cu
   )
-  list(APPEND PRIVATE_DEPS CUDA::cudart)
+  # TODO: CUDA RNG is included by host code
+  list(APPEND PUBLIC_DEPS CUDA::cudart)
 else()
   list(APPEND SOURCES
-    random/cuda/curand.nocuda.cc
-    random/cuda/detail/RngStateInit.nocuda.cc
+    random/detail/curand.nocuda.cc
+    random/detail/RngStateInit.nocuda.cc
     sim/detail/SimStateInit.nocuda.cc
   )
 endif()
@@ -128,8 +132,9 @@ endif()
 
 if(CELERITAS_USE_VecGeom)
   list(APPEND SOURCES
+    geometry/GeoMaterialParams.cc
     geometry/GeoParams.cc
-    geometry/GeoStateStore.cc
+    geometry/detail/VGNavCollection.cc
     sim/ParamStore.cc
     sim/StateStore.cc
     sim/TrackInitializerStore.cc
@@ -137,13 +142,10 @@ if(CELERITAS_USE_VecGeom)
   list(APPEND PRIVATE_DEPS VecGeom::vgdml VecGeom::vecgeom)
   if(CELERITAS_USE_CUDA)
     list(APPEND SOURCES
-      geometry/detail/VGNavStateStore.cuda.cc
       sim/detail/InitializeTracks.cu
     )
-    list(APPEND PRIVATE_DEPS VecGeom::vecgeomcuda VecGeom::vecgeomcuda_static)
   else()
     list(APPEND SOURCES
-      geometry/detail/VGNavStateStore.nocuda.cc
       sim/detail/InitializeTracks.nocuda.cc
     )
   endif()
@@ -152,17 +154,13 @@ endif()
 add_library(celeritas ${SOURCES})
 add_library(Celeritas::Core ALIAS celeritas)
 
-if(CELERITAS_USE_VecGeom AND CELERITAS_USE_CUDA)
-  set_target_properties(celeritas PROPERTIES
-    LINKER_LANGUAGE CUDA
-    CUDA_SEPARABLE_COMPILATION ON
-  )
-endif()
-
 target_link_libraries(celeritas
   PRIVATE ${PRIVATE_DEPS}
   PUBLIC ${PUBLIC_DEPS}
 )
+if(CELERITAS_USE_VecGeom AND CELERITAS_USE_CUDA)
+  celeritas_link_vecgeom_cuda(celeritas)
+endif()
 
 target_include_directories(celeritas
   PUBLIC

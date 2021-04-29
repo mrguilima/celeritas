@@ -57,12 +57,16 @@ struct ParticleDef
 template<Ownership W, MemSpace M>
 struct ParticleParamsData
 {
+    //// TYPES ////
+
     template<class T>
-    using Data = celeritas::Collection<T, W, M>;
+    using Items = celeritas::Collection<T, W, M>;
 
-    Data<ParticleDef> particles;
+    //// DATA ////
 
-    //// MEMBER FUNCTIONS ////
+    Items<ParticleDef> particles;
+
+    //// METHODS ////
 
     //! Whether the data is assigned
     explicit inline CELER_FUNCTION operator bool() const
@@ -101,9 +105,11 @@ struct ParticleTrackState
     units::MevEnergy energy;      //!< Kinetic energy [MeV]
 };
 
+using ParticleTrackInitializer = ParticleTrackState;
+
 //---------------------------------------------------------------------------//
 /*!
- * View to the dynamic states of multiple physical particles.
+ * Data storage/access for particle properties.
  *
  * The size of the view will be the size of the vector of tracks. Each particle
  * track state corresponds to the thread ID (\c ThreadId).
@@ -113,10 +119,16 @@ struct ParticleTrackState
 template<Ownership W, MemSpace M>
 struct ParticleStateData
 {
-    template<class T>
-    using Data = celeritas::StateCollection<T, W, M>;
+    //// TYPES ////
 
-    Data<ParticleTrackState> state;
+    template<class T>
+    using Items = celeritas::StateCollection<T, W, M>;
+
+    //// DATA ////
+
+    Items<ParticleTrackState> state;
+
+    //// METHODS ////
 
     //! Whether the interface is assigned
     explicit CELER_FUNCTION operator bool() const { return !state.empty(); }

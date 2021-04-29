@@ -38,8 +38,6 @@ void run(std::istream& is)
         GeoParams::set_cuda_stack_size(inp.at("cuda_stack_size").get<int>());
     }
 
-    int max_steps = inp.at("max_steps").get<int>();
-
     // define track(s)
     int ntracks = 1;
 
@@ -56,12 +54,10 @@ void run(std::istream& is)
         pos[i] = 10.0 * pos[i];
 #endif
     }
-    GeoStateInitializer init{pos, dir};
+    GeoTrackInitializer init{pos, dir};
 
-    // Construct runner
-    GCheckRunner run(geo_params, max_steps);
     CELER_ASSERT(geo_params);
-    run(&init, ntracks);
+    int max_steps = inp.at("max_steps").get<int>();
 
     // Get geometry names
     std::vector<std::string> vol_names;
@@ -70,6 +66,10 @@ void run(std::istream& is)
         vol_names.push_back(
             geo_params->id_to_label(celeritas::VolumeId(vol_id)));
     }
+
+    // Construct runner, which takes over geo_params
+    GCheckRunner run(geo_params, max_steps);
+    run(&init, ntracks);
 }
 
 } // namespace geo_check

@@ -9,13 +9,13 @@
 
 #include <memory>
 #include "geometry/GeoParams.hh"
-#include "geometry/GeoInterface.hh"
+//#include "geometry/GeoInterface.hh"
 
 using namespace celeritas;
 
 namespace geo_check
 {
-using SPConstGeo = std::shared_ptr<const celeritas::GeoParams>;
+// using SPConstGeo = std::shared_ptr<const celeritas::GeoParams>;
 
 //---------------------------------------------------------------------------//
 /*!
@@ -31,10 +31,10 @@ class GCheckRunner
 
   public:
     // Construct with geometry
-    explicit GCheckRunner(SPConstGeo geometry, int max_steps);
+    explicit GCheckRunner(const SPConstGeo& geometry, int max_steps);
 
     // Run over some tracks
-    void operator()(const celeritas::GeoStateInitializer* init, int ntk) const;
+    void operator()(const celeritas::GeoTrackInitializer* init, int ntk) const;
 
   private:
     SPConstGeo geo_params_;

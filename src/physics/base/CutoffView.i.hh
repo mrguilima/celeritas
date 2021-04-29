@@ -12,9 +12,9 @@ namespace celeritas
 /*!
  * Construct view from host/device for the given particle and material ids.
  */
-CutoffView::CutoffView(const CutoffPointers& params,
-                       ParticleId            particle,
-                       MaterialId            material)
+CELER_FUNCTION CutoffView::CutoffView(const CutoffPointers& params,
+                                      ParticleId            particle,
+                                      MaterialId            material)
 {
     CELER_EXPECT(particle < params.num_particles);
     CELER_EXPECT(material < params.num_materials);
@@ -23,5 +23,6 @@ CutoffView::CutoffView(const CutoffPointers& params,
 
     cutoff_ = params.cutoffs[cutoff_id];
 }
+
 //---------------------------------------------------------------------------//
 } // namespace celeritas

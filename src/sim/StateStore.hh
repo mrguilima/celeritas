@@ -8,8 +8,8 @@
 #pragma once
 
 #include "base/DeviceVector.hh"
-#include "geometry/GeoStateStore.hh"
-#include "random/cuda/RngStateStore.hh"
+#include "geometry/GeoParams.hh"
+#include "random/RngInterface.hh"
 #include "SimStateStore.hh"
 #include "TrackInterface.hh"
 
@@ -46,12 +46,15 @@ class StateStore
     StatePointers device_pointers();
 
   private:
-    // XXX Unify these guys and possibly remove this state store?
-    ParticleStateData<Ownership::value, MemSpace::device> particle_states_;
+    template<template<Ownership, MemSpace> class S>
+    using DeviceVal = S<Ownership::value, MemSpace::device>;
 
-    GeoStateStore             geo_states_;
+    // XXX Unify these guys and possibly remove this state store?
+    DeviceVal<ParticleStateData> particle_states_;
+    DeviceVal<RngStateData>      rng_states_;
+    DeviceVal<GeoStateData>      geo_states_;
+
     SimStateStore             sim_states_;
-    RngStateStore             rng_states_;
     DeviceVector<Interaction> interactions_;
 };
 

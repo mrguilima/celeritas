@@ -99,6 +99,48 @@ make_builder(Collection<T, Ownership::value, M, I>* collection)
 }
 
 //---------------------------------------------------------------------------//
+//!@{
+//! Helper functions for constructing references to state/params data.
+template<template<Ownership, MemSpace> class S, MemSpace M>
+inline S<Ownership::reference, M> make_ref(S<Ownership::value, M>& states)
+{
+    S<Ownership::reference, M> result;
+    result = states;
+    return result;
+}
+
+template<template<Ownership, MemSpace> class P, MemSpace M>
+inline P<Ownership::const_reference, M>
+make_ref(const P<Ownership::value, M>& params)
+{
+    P<Ownership::const_reference, M> result;
+    result = params;
+    return result;
+}
+
+template<template<Ownership, MemSpace> class P, MemSpace M>
+inline decltype(auto) make_const_ref(const P<Ownership::value, M>& params)
+{
+    return make_ref(params);
+}
+
+//!@}
+//---------------------------------------------------------------------------//
+/*!
+ * Helper function for resizing a single collection.
+ *
+ * This is useful for analogy to the resize method defined for states.
+ */
+template<class T, MemSpace M, class I>
+void resize(Collection<T, Ownership::value, M, I>* collection,
+            typename I::size_type                  size)
+{
+    CELER_EXPECT(collection);
+    CELER_EXPECT(size > 0);
+    CollectionBuilder<T, M, I>(collection).resize(size);
+}
+
+//---------------------------------------------------------------------------//
 } // namespace celeritas
 
 #include "CollectionBuilder.i.hh"

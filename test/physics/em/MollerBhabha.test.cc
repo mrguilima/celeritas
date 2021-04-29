@@ -15,12 +15,16 @@
 #include "../InteractorHostTestBase.hh"
 #include "../InteractionIO.hh"
 #include "physics/material/MaterialTrackView.hh"
+#include "physics/base/CutoffView.hh"
 
 using celeritas::Action;
+using celeritas::CutoffView;
 using celeritas::dot_product;
 using celeritas::normalize_direction;
+using celeritas::ParticleCutoff;
 using celeritas::detail::MollerBhabhaInteractor;
 using celeritas::units::AmuMass;
+using celeritas::units::MevEnergy;
 namespace constants = celeritas::constants;
 namespace pdg       = celeritas::pdg;
 
@@ -52,15 +56,6 @@ class MollerBhabhaInteractorTest : public celeritas_test::InteractorHostTestBase
                                     ElementaryCharge{1},
                                     stable}});
 
-        const auto& params           = this->particle_params();
-        pointers_.electron_id        = params.find(pdg::electron());
-        pointers_.positron_id        = params.find(pdg::positron());
-        pointers_.electron_mass_c_sq = 0.5109989461;
-        pointers_.min_valid_energy   = 1e-3; // [MeV]
-
-        // Set default incident direction. Particle is defined in the tests
-        this->set_inc_direction({0, 0, 1});
-
         // Setup MaterialView
         MaterialParams::Input inp;
         inp.elements  = {{29, AmuMass{63.546}, "Cu"}};
@@ -73,6 +68,19 @@ class MollerBhabhaInteractorTest : public celeritas_test::InteractorHostTestBase
         };
         this->set_material_params(inp);
         this->set_material("Cu");
+
+        // Set basic CutoffParams (no cuts)
+        CutoffParams::Input cutoff_inp;
+        cutoff_inp.materials = this->material_params();
+        cutoff_inp.particles = this->particle_params();
+        this->set_cutoff_params(cutoff_inp);
+
+        // Set MollerBhabhaPointers
+        const auto& params    = *this->particle_params();
+        pointers_.electron_id = params.find(pdg::electron());
+        pointers_.positron_id = params.find(pdg::positron());
+        pointers_.electron_mass_c_sq
+            = params.get(pointers_.electron_id).mass().value();
     }
 
     void sanity_check(const Interaction& interaction) const
@@ -104,103 +112,85 @@ class MollerBhabhaInteractorTest : public celeritas_test::InteractorHostTestBase
     celeritas::detail::MollerBhabhaPointers pointers_;
 };
 
+struct SampleInit
+{
+    celeritas::real_type energy; //!< MeV
+    celeritas::Real3     dir;
+};
+
+struct SampleResult
+{
+    std::vector<double> inc_exit_cost;
+    std::vector<double> inc_exit_e;
+    std::vector<double> inc_edep;
+    std::vector<double> sec_cost;
+    std::vector<double> sec_e;
+};
+
 //---------------------------------------------------------------------------//
 // TESTS
 //---------------------------------------------------------------------------//
-
 TEST_F(MollerBhabhaInteractorTest, basic)
 {
     // Sample 4 Moller and 4 Bhabha interactors
     this->resize_secondaries(8);
     RandomEngine& rng_engine = this->rng();
 
-    // Sampled Moller results
-    std::vector<double> m_inc_exit_cost;
-    std::vector<double> m_inc_exit_e;
-    std::vector<double> m_inc_edep;
-    std::vector<double> m_sec_cost;
-    std::vector<double> m_sec_e;
+    // Sampled results
+    SampleResult m_results, b_results;
 
-    // Sampled Bhabha results
-    std::vector<double> b_inc_exit_cost;
-    std::vector<double> b_inc_exit_e;
-    std::vector<double> b_inc_edep;
-    std::vector<double> b_sec_cost;
-    std::vector<double> b_sec_e;
+    // clang-format off
+    // Incident energy [MeV] and unnormalized direction
+    const SampleInit samples[] = {{1,   {5, 5, 5}},
+                                  {10,  {-3, 7, 10}},
+                                  {1e3, {1, -10, 5}},
+                                  {1e5, {3, 7, -6}}};
+    // clang-format on
 
-    // Selected energies for the incident particle's interactor test [MeV]
-    real_type inc_energies[4] = {1, 10, 1e3, 1e5};
+    CutoffView cutoff_view(
+        this->cutoff_params()->host_pointers(), ParticleId{0}, MaterialId{0});
 
-    Real3 dir0 = {5, 5, 5};
-    Real3 dir1 = {-3, 7, 10};
-    Real3 dir2 = {1, -10, 5};
-    Real3 dir3 = {3, 7, -6};
-    normalize_direction(&dir0);
-    normalize_direction(&dir1);
-    normalize_direction(&dir2);
-    normalize_direction(&dir3);
-
-    // Selected directions for the incident particle's interactor test
-    Real3 inc_direction[4] = {dir0, dir1, dir2, dir3};
-
-    for (int i : celeritas::range(4))
+    for (const SampleInit& init : samples)
     {
-        this->set_inc_direction(inc_direction[i]);
+        Real3 dir = init.dir;
+        normalize_direction(&dir);
+        this->set_inc_direction(dir);
 
-        //// Sample Moller
-        this->set_inc_particle(pdg::electron(), MevEnergy{inc_energies[i]});
+        for (auto p : {pdg::electron(), pdg::positron()})
+        {
+            this->set_inc_particle(p, MevEnergy{init.energy});
 
-        MollerBhabhaInteractor m_interactor(pointers_,
-                                            this->particle_track(),
-                                            this->direction(),
-                                            this->secondary_allocator());
+            MollerBhabhaInteractor mb_interact(pointers_,
+                                               this->particle_track(),
+                                               cutoff_view,
+                                               dir,
+                                               this->secondary_allocator());
 
-        Interaction m_result = m_interactor(rng_engine);
-        this->sanity_check(m_result);
+            Interaction result = mb_interact(rng_engine);
+            this->sanity_check(result);
+            const Secondary& sec = result.secondaries.front();
 
-        m_inc_exit_cost.push_back(
-            dot_product(m_result.direction, this->direction()));
-        m_inc_exit_e.push_back(m_result.energy.value());
-        m_inc_edep.push_back(m_result.energy_deposition.value());
-        EXPECT_EQ(1, m_result.secondaries.size());
-        m_sec_cost.push_back(
-            dot_product(m_result.secondaries[0].direction, this->direction()));
-        m_sec_e.push_back(m_result.secondaries[0].energy.value());
-
-        //// Sample Bhabha
-        this->set_inc_particle(pdg::positron(), MevEnergy{inc_energies[i]});
-
-        MollerBhabhaInteractor b_interactor(pointers_,
-                                            this->particle_track(),
-                                            this->direction(),
-                                            this->secondary_allocator());
-
-        Interaction b_result = b_interactor(rng_engine);
-        this->sanity_check(b_result);
-
-        b_inc_exit_cost.push_back(
-            dot_product(b_result.direction, this->direction()));
-        b_inc_exit_e.push_back(b_result.energy.value());
-        b_inc_edep.push_back(b_result.energy_deposition.value());
-        EXPECT_EQ(1, b_result.secondaries.size());
-        b_sec_cost.push_back(
-            dot_product(b_result.secondaries[0].direction, this->direction()));
-        b_sec_e.push_back(b_result.secondaries[0].energy.value());
+            SampleResult& r = (p == pdg::electron() ? m_results : b_results);
+            r.inc_exit_cost.push_back(dot_product(result.direction, dir));
+            r.inc_exit_e.push_back(result.energy.value());
+            r.inc_edep.push_back(result.energy_deposition.value());
+            r.sec_cost.push_back(dot_product(sec.direction, dir));
+            r.sec_e.push_back(sec.energy.value());
+        }
     }
 
     //// Moller
     // Gold values based on the host rng. Energies are in MeV
     const double expected_m_inc_exit_cost[]
-        = {0.9981497250995, 0.999993612333, 0.999999995461, 0.9999999999998};
+        = {0.9963292221847, 0.9999872239933, 0.9999999909221, 0.9999999999995};
     const double expected_m_inc_exit_e[]
-        = {0.9927116916645, 9.998622388005, 999.9911084469, 99999.99528134};
+        = {0.9856047891889, 9.997244984116, 999.9822171745, 99999.99056267};
     const double expected_m_inc_edep[] = {0, 0, 0, 0};
     const double expected_m_sec_cost[] = {
-        0.1196563201983, 0.03851909820188, 0.09291901073767, 0.06779325842364};
-    const double expected_m_sec_e[] = {0.007288308335526,
-                                       0.001377611995461,
-                                       0.008891553104294,
-                                       0.004718664979811};
+        0.1675857575233, 0.05443555255527, 0.1308432475718, 0.09565458549568};
+    const double expected_m_sec_e[] = {
+        0.01439521081106, 0.002755015883891, 0.0177828255398, 0.009437329257737};
+
     //// Bhabha
     // Gold values based on the host rng. Energies are in MeV
     const double expected_b_inc_exit_cost[]
@@ -216,25 +206,136 @@ TEST_F(MollerBhabhaInteractorTest, basic)
                                        0.001350170413359};
 
     //// Moller
-    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_cost, m_inc_exit_cost);
-    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_e, m_inc_exit_e);
-    EXPECT_VEC_SOFT_EQ(expected_m_inc_edep, m_inc_edep);
-    EXPECT_VEC_SOFT_EQ(expected_m_sec_cost, m_sec_cost);
-    EXPECT_VEC_SOFT_EQ(expected_m_sec_e, m_sec_e);
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_cost, m_results.inc_exit_cost);
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_e, m_results.inc_exit_e);
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_edep, m_results.inc_edep);
+    EXPECT_VEC_SOFT_EQ(expected_m_sec_cost, m_results.sec_cost);
+    EXPECT_VEC_SOFT_EQ(expected_m_sec_e, m_results.sec_e);
     //// Bhabha
-    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_cost, b_inc_exit_cost);
-    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_e, b_inc_exit_e);
-    EXPECT_VEC_SOFT_EQ(expected_b_inc_edep, b_inc_edep);
-    EXPECT_VEC_SOFT_EQ(expected_b_sec_cost, b_sec_cost);
-    EXPECT_VEC_SOFT_EQ(expected_b_sec_e, b_sec_e);
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_cost, b_results.inc_exit_cost);
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_e, b_results.inc_exit_e);
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_edep, b_results.inc_edep);
+    EXPECT_VEC_SOFT_EQ(expected_b_sec_cost, b_results.sec_cost);
+    EXPECT_VEC_SOFT_EQ(expected_b_sec_e, b_results.sec_e);
 }
 
+//---------------------------------------------------------------------------//
+TEST_F(MollerBhabhaInteractorTest, cutoff_1MeV)
+{
+    // Sample 4 Moller and 4 Bhabha interactors
+    this->resize_secondaries(8);
+    RandomEngine& rng_engine = this->rng();
+
+    // Sampled results
+    SampleResult m_results, b_results;
+
+    // clang-format off
+    // Incident energy [MeV] and unnormalized direction
+    const SampleInit samples[] = {{10,   {5, 5, 5}},
+                                  {1e2,  {-3, 7, 10}},
+                                  {1e3, {1, -10, 5}},
+                                  {1e5, {3, 7, -6}}};
+    // clang-format on
+
+    // Create CutoffParams with a 1 MeV electron cutoff (range not needed)
+    CutoffParams::MaterialCutoffs material_cutoffs;
+    material_cutoffs.push_back({MevEnergy{1}, 0});
+
+    CutoffParams::Input cutoff_inp;
+    cutoff_inp.materials = this->material_params();
+    cutoff_inp.particles = this->particle_params();
+    cutoff_inp.cutoffs.insert({pdg::electron(), material_cutoffs});
+    this->set_cutoff_params(cutoff_inp);
+
+    CutoffView cutoff_view(
+        this->cutoff_params()->host_pointers(), ParticleId{0}, MaterialId{0});
+
+    for (const SampleInit& init : samples)
+    {
+        Real3 dir = init.dir;
+        normalize_direction(&dir);
+        this->set_inc_direction(dir);
+
+        for (auto p : {pdg::electron(), pdg::positron()})
+        {
+            this->set_inc_particle(p, MevEnergy{init.energy});
+
+            MollerBhabhaInteractor mb_interact(pointers_,
+                                               this->particle_track(),
+                                               cutoff_view,
+                                               dir,
+                                               this->secondary_allocator());
+
+            Interaction result = mb_interact(rng_engine);
+            this->sanity_check(result);
+            const Secondary& sec = result.secondaries.front();
+
+            SampleResult& r = (p == pdg::electron() ? m_results : b_results);
+            r.inc_exit_cost.push_back(dot_product(result.direction, dir));
+            r.inc_exit_e.push_back(result.energy.value());
+            r.inc_edep.push_back(result.energy_deposition.value());
+            r.sec_cost.push_back(dot_product(sec.direction, dir));
+            r.sec_e.push_back(sec.energy.value());
+        }
+    }
+
+    //// Moller
+    // Gold values based on the host rng. Energies are in MeV
+    const double expected_m_inc_exit_cost[]
+        = {0.9784675127353, 0.9997401875592, 0.9999953862586, 0.9999999997589};
+    const double expected_m_inc_exit_e[]
+        = {6.75726441249, 95.11275692125, 991.0427997072, 99995.28168559};
+    const double expected_m_inc_edep[] = {0, 0, 0, 0};
+    const double expected_m_sec_cost[]
+        = {0.9154612855963, 0.91405872098, 0.9478947756541, 0.9066254320384};
+    const double expected_m_sec_e[]
+        = {3.24273558751, 4.887243078746, 8.957200292789, 4.718314414109};
+
+    //// Bhabha
+    // Gold values based on the host rng. Energies are in MeV
+    const double expected_b_inc_exit_cost[]
+        = {0.9774788335858, 0.9999472046111, 0.9999992012865, 0.999999999931};
+    const double expected_b_inc_exit_e[]
+        = {6.654742369665, 98.96696134497, 998.4378016843, 99998.64983431};
+    const double expected_b_inc_edep[] = {0, 0, 0, 0};
+    const double expected_b_sec_cost[]
+        = {0.9188415916986, 0.7126175077086, 0.777906053136, 0.7544377929863};
+    const double expected_b_sec_e[]
+        = {3.345257630335, 1.033038655033, 1.562198315728, 1.350165690206};
+
+    //// Moller
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_cost, m_results.inc_exit_cost);
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_exit_e, m_results.inc_exit_e);
+    EXPECT_VEC_SOFT_EQ(expected_m_inc_edep, m_results.inc_edep);
+    EXPECT_VEC_SOFT_EQ(expected_m_sec_cost, m_results.sec_cost);
+    EXPECT_VEC_SOFT_EQ(expected_m_sec_e, m_results.sec_e);
+    for (const auto secondary_energy : m_results.sec_e)
+    {
+        // Verify if secondary is above the cutoff threshold
+        EXPECT_TRUE(secondary_energy > cutoff_view.energy().value());
+    }
+
+    //// Bhabha
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_cost, b_results.inc_exit_cost);
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_exit_e, b_results.inc_exit_e);
+    EXPECT_VEC_SOFT_EQ(expected_b_inc_edep, b_results.inc_edep);
+    EXPECT_VEC_SOFT_EQ(expected_b_sec_cost, b_results.sec_cost);
+    EXPECT_VEC_SOFT_EQ(expected_b_sec_e, b_results.sec_e);
+    for (const auto secondary_energy : b_results.sec_e)
+    {
+        // Verify if secondary is above the cutoff threshold
+        EXPECT_TRUE(secondary_energy > cutoff_view.energy().value());
+    }
+}
+
+//---------------------------------------------------------------------------//
 TEST_F(MollerBhabhaInteractorTest, stress_test)
 {
-    RandomEngine& rng = this->rng();
-
     const int           num_samples = 1e4;
     std::vector<double> avg_engine_samples;
+
+    CutoffView cutoff_view(
+        this->cutoff_params()->host_pointers(), ParticleId{0}, MaterialId{0});
 
     // Moller's max energy fraction is 0.5, which leads to E_K > 2e-3
     // Bhabha's max energy fraction is 1.0, which leads to E_K > 1e-3
@@ -245,6 +346,7 @@ TEST_F(MollerBhabhaInteractorTest, stress_test)
     {
         for (double inc_e : {5e-3, 1.0, 10.0, 100.0, 1000.0})
         {
+            RandomEngine&           rng_engine            = this->rng();
             RandomEngine::size_type num_particles_sampled = 0;
 
             // Loop over several incident directions (shouldn't affect anything
@@ -261,13 +363,14 @@ TEST_F(MollerBhabhaInteractorTest, stress_test)
                 this->set_inc_particle(particle, MevEnergy{inc_e});
                 MollerBhabhaInteractor mb_interact(pointers_,
                                                    this->particle_track(),
+                                                   cutoff_view,
                                                    this->direction(),
                                                    this->secondary_allocator());
 
                 // Loop over half the sample size
                 for (int i = 0; i < num_samples; ++i)
                 {
-                    Interaction result = mb_interact(rng);
+                    Interaction result = mb_interact(rng_engine);
                     this->sanity_check(result);
                 }
 
@@ -275,21 +378,21 @@ TEST_F(MollerBhabhaInteractorTest, stress_test)
                           this->secondary_allocator().get().size());
                 num_particles_sampled += num_samples;
             }
-            avg_engine_samples.push_back(double(rng.count())
+            avg_engine_samples.push_back(double(rng_engine.count())
                                          / double(num_particles_sampled));
-            rng.reset_count();
         }
     }
     // Gold values for average number of calls to rng
-    const double expected_avg_engine_samples[] = {20.8046,
-                                                  13.2538,
-                                                  9.5695,
-                                                  9.2121,
-                                                  9.1693,
-                                                  564.0656,
-                                                  8.7123,
-                                                  7.1706,
-                                                  7.0299,
-                                                  7.0079};
+    const double expected_avg_engine_samples[] = {29.6929,
+                                                  13.2098,
+                                                  9.5096,
+                                                  9.1994,
+                                                  9.1725,
+                                                  564.227,
+                                                  8.7404,
+                                                  7.1755,
+                                                  7.0203,
+                                                  6.9907};
+
     EXPECT_VEC_SOFT_EQ(expected_avg_engine_samples, avg_engine_samples);
 }

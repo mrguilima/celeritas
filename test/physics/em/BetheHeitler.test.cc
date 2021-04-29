@@ -57,7 +57,7 @@ class BetheHeitlerInteractorTest : public celeritas_test::InteractorHostTestBase
               ElementaryCharge{1},
               stable},
              {"gamma", pdg::gamma(), zero, zero, stable}});
-        const auto& params    = this->particle_params();
+        const auto& params    = *this->particle_params();
         pointers_.electron_id = params.find(pdg::electron());
         pointers_.positron_id = params.find(pdg::positron());
         pointers_.gamma_id    = params.find(pdg::gamma());
@@ -165,14 +165,12 @@ TEST_F(BetheHeitlerInteractorTest, basic)
     EXPECT_EQ(2 * num_samples, this->secondary_allocator().get().size());
 
     // Note: these are "gold" values based on the host RNG.
-    const double expected_energy1[] = {
-        3.39788055741559, 5.94794724941223, 93.5479251326247, 0.609041145240891};
-    const double expected_energy2[] = {
-        96.6021194425844, 94.0520527505878, 6.45207486737531, 99.3909588547591};
-    const double expected_angle[] = {0.987435394080014,
-                                     0.993539590873641,
-                                     0.998111731270319,
-                                     0.636300552842406};
+    const double expected_energy1[]
+        = {16.57248532448, 99.25227118843, 24.00633179151, 95.23685783041};
+    const double expected_energy2[]
+        = {83.42751467552, 0.7477288115688, 75.99366820849, 4.763142169585};
+    const double expected_angle[]
+        = {0.9999694782475, 0.9111977209393, 0.9997556894823, 0.9921593039016};
 
     EXPECT_VEC_SOFT_EQ(expected_energy1, energy1);
     EXPECT_VEC_SOFT_EQ(expected_energy2, energy2);
@@ -188,8 +186,6 @@ TEST_F(BetheHeitlerInteractorTest, basic)
 
 TEST_F(BetheHeitlerInteractorTest, stress_test)
 {
-    RandomEngine& rng_engine = this->rng();
-
     const unsigned int  num_samples = 8;
     std::vector<double> avg_engine_samples;
 
@@ -198,6 +194,8 @@ TEST_F(BetheHeitlerInteractorTest, stress_test)
     {
         SCOPED_TRACE("Incident energy: " + std::to_string(inc_e));
         this->set_inc_particle(pdg::gamma(), MevEnergy{inc_e});
+
+        RandomEngine&           rng_engine            = this->rng();
         RandomEngine::size_type num_particles_sampled = 0;
 
         // Loop over several incident directions
@@ -233,18 +231,18 @@ TEST_F(BetheHeitlerInteractorTest, stress_test)
         }
         avg_engine_samples.push_back(double(rng_engine.count())
                                      / double(num_particles_sampled));
-        rng_engine.reset_count();
     }
+
     // Gold values for average number of calls to RNG
     const double expected_avg_engine_samples[]
-        = {18.375, 23.3125, 23.5, 22.9375, 22.75};
+        = {18.375, 23.125, 22.75, 23.3125, 22.5625};
     EXPECT_VEC_SOFT_EQ(expected_avg_engine_samples, avg_engine_samples);
 }
 
 // TODO: Test all models for a given process?
 TEST_F(BetheHeitlerInteractorTest, model)
 {
-    GammaConversionProcess process(this->get_particle_params());
+    GammaConversionProcess process(this->particle_params());
     ModelIdGenerator       next_id;
 
     // Construct the models associated with gamma annihilation

@@ -81,7 +81,7 @@ class LivermorePETest : public celeritas_test::InteractorHostTestBase
               ElementaryCharge{-1},
               stable},
              {"gamma", pdg::gamma(), zero, zero, stable}});
-        const auto& particles = this->particle_params();
+        const auto& particles = *this->particle_params();
 
         // Set up shared material data
         MaterialParams::Input mi;
@@ -99,7 +99,7 @@ class LivermorePETest : public celeritas_test::InteractorHostTestBase
         LivermorePEReader read_element_data(data_path.c_str());
 
         model_ = std::make_shared<LivermorePEModel>(
-            ModelId{0}, particles, this->material_params(), read_element_data);
+            ModelId{0}, particles, *this->material_params(), read_element_data);
 
         // Set atomic relaxation data
         AtomicRelaxationReader read_transition_data(data_path.c_str(),
@@ -224,8 +224,6 @@ TEST_F(LivermorePETest, basic)
 
 TEST_F(LivermorePETest, stress_test)
 {
-    RandomEngine& rng_engine = this->rng();
-
     const int           num_samples = 8192;
     std::vector<double> avg_engine_samples;
 
@@ -235,6 +233,8 @@ TEST_F(LivermorePETest, stress_test)
     {
         SCOPED_TRACE("Incident energy: " + std::to_string(inc_e));
         this->set_inc_particle(pdg::gamma(), MevEnergy{inc_e});
+
+        RandomEngine&           rng_engine            = this->rng();
         RandomEngine::size_type num_particles_sampled = 0;
 
         // Loop over several incident directions (shouldn't affect anything
@@ -266,8 +266,8 @@ TEST_F(LivermorePETest, stress_test)
         }
         avg_engine_samples.push_back(double(rng_engine.count())
                                      / double(num_particles_sampled));
-        rng_engine.reset_count();
     }
+
     // PRINT_EXPECTED(avg_engine_samples);
     // Gold values for average number of calls to RNG
     const double expected_avg_engine_samples[]

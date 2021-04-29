@@ -12,7 +12,7 @@
 #include "physics/base/Interaction.hh"
 #include "physics/base/ParticleInterface.hh"
 #include "physics/material/MaterialInterface.hh"
-#include "random/cuda/RngInterface.hh"
+#include "random/RngInterface.hh"
 #include "SimInterface.hh"
 
 namespace celeritas
@@ -25,9 +25,12 @@ namespace celeritas
  */
 struct ParamPointers
 {
-    GeoParamsPointers                                                geo;
-    MaterialParamsData<Ownership::const_reference, MemSpace::device> material;
-    ParticleParamsData<Ownership::const_reference, MemSpace::device> particle;
+    template<template<Ownership, MemSpace> class S>
+    using DeviceCRef = S<Ownership::const_reference, MemSpace::device>;
+
+    DeviceCRef<GeoParamsData>      geo;
+    DeviceCRef<MaterialParamsData> material;
+    DeviceCRef<ParticleParamsData> particle;
 
     //! Whether the data are assigned
     explicit CELER_FUNCTION operator bool() const
@@ -44,11 +47,15 @@ struct ParamPointers
  */
 struct StatePointers
 {
-    ParticleStateData<Ownership::reference, MemSpace::device> particle;
-    GeoStatePointers                                          geo;
-    SimStatePointers                                          sim;
-    RngStatePointers                                          rng;
-    Span<Interaction>                                         interactions;
+    template<template<Ownership, MemSpace> class S>
+    using DeviceRef = S<Ownership::reference, MemSpace::device>;
+
+    DeviceRef<ParticleStateData> particle;
+    DeviceRef<RngStateData>      rng;
+    DeviceRef<GeoStateData>      geo;
+
+    SimStatePointers  sim;
+    Span<Interaction> interactions;
 
     //! Whether the data are assigned
     explicit CELER_FUNCTION operator bool() const

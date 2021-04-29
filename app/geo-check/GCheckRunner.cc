@@ -7,12 +7,11 @@
 //---------------------------------------------------------------------------//
 #include "GCheckRunner.hh"
 
-//#include "base/Range.hh"
+#include "base/CollectionStateStore.hh"
 #include "base/Stopwatch.hh"
 #include "base/ColorUtils.hh"
 #include "comm/Logger.hh"
 #include "geometry/GeoParams.hh"
-#include "geometry/GeoStateStore.hh"
 #include "geometry/GeoInterface.hh"
 #include "geometry/GeoTrackView.hh"
 #include "geometry/LinearPropagator.hh"
@@ -27,9 +26,9 @@ using NavState = vecgeom::NavigationState;
 
 //---------------------------------------------------------------------------//
 /*!
- * Construct with image parameters
+ * Constructor, takes ownership of SPConstGeo object received
  */
-GCheckRunner::GCheckRunner(SPConstGeo geometry, int max_steps)
+GCheckRunner::GCheckRunner(const SPConstGeo& geometry, int max_steps)
     : geo_params_(std::move(geometry)), max_steps_(max_steps)
 {
     CELER_EXPECT(geo_params_);
@@ -40,31 +39,18 @@ GCheckRunner::GCheckRunner(SPConstGeo geometry, int max_steps)
 /*!
  * Propagate a track for debugging purposes
  */
-void GCheckRunner::operator()(const GeoStateInitializer* init, int ntrks) const
+void GCheckRunner::operator()(const GeoTrackInitializer* init,
+                              int /*ntrks*/) const
 {
     CELER_EXPECT(init);
 
-    GeoStatePointers state_view;
-    state_view.size       = ntrks;
-    state_view.vgmaxdepth = geo_params_->max_depth();
-    state_view.pos        = new Real3;
-    state_view.dir        = new Real3;
-    state_view.next_step  = new real_type{0.0};
-    state_view.vgstate    = NavState::MakeInstance(state_view.vgmaxdepth);
-    state_view.vgnext     = NavState::MakeInstance(state_view.vgmaxdepth);
-
     // run on the CPU
     CELER_LOG(status) << "Propagating track(s) on CPU";
-    run_cpu(geo_params_->host_pointers(), state_view, init, max_steps_);
+    run_cpu(geo_params_, init, max_steps_);
 
-    // run on the GPU device
-    GeoStateStore geo_state(*geo_params_, ntrks);
-
+    // run on the GPU
     CELER_LOG(status) << "Propagating track(s) on GPU";
-    run_gpu(geo_params_->device_pointers(),
-            geo_state.device_pointers(),
-            *init,
-            max_steps_);
+    run_gpu(geo_params_, init, max_steps_);
 }
 
 //---------------------------------------------------------------------------//
