@@ -91,7 +91,7 @@ void run_gpu(GCheckInput input)
 
     gcheck_kernel<<<1, 1>>>(input.params,
                             input.state,
-                            raw_pointer_cast(input.init.data()),
+                            raw_pointer_cast(tracks.data()),
                             input.max_steps,
                             raw_pointer_cast(ids.data()),
                             raw_pointer_cast(distances.data()));
