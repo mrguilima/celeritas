@@ -20,9 +20,9 @@ using namespace celeritas;
 /*!
  *  Run tracking on the CPU
  */
-void run_cpu(const SPConstGeo&          params,
-             const GeoTrackInitializer* init,
-             int                        max_steps)
+GCheckOutput run_cpu(const SPConstGeo&          params,
+                     const GeoTrackInitializer* init,
+                     int                        max_steps)
 {
     using StateStore = CollectionStateStore<GeoStateData, MemSpace::host>;
 
@@ -43,20 +43,17 @@ void run_cpu(const SPConstGeo&          params,
            geo.is_outside());
 
     // Track from outside detector, moving right
-    for (int istep = 0; istep < max_steps; ++istep)
+    GCheckOutput result;
+    int          istep = 0;
+    do
     {
-        if (geo.is_outside())
-            break;
-
         auto step = propagate(); // to next boundary
-        printf("step=%i: volid=%i dist=%f, curpos=(%f, %f, %f)\n",
-               istep,
-               (geo.is_outside() ? -1 : step.volume.get()),
-               step.distance,
-               geo.pos()[0],
-               geo.pos()[1],
-               geo.pos()[2]);
-    }
+        result.ids.push_back(step.volume ? step.volume.get() : -1);
+        result.distances.push_back(step.distance);
+        ++istep;
+    } while (!geo.is_outside() && istep < max_steps);
+
+    return result;
 }
 
 } // namespace geo_check

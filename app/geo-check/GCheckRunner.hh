@@ -35,7 +35,6 @@ class GCheckRunner
 
     // Run over some tracks
     void operator()(const celeritas::GeoTrackInitializer* init) const;
-    void operator()(const real_type* trkdata) const;
 
   private:
     SPConstGeo geo_params_;

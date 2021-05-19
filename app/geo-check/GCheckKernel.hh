@@ -27,7 +27,8 @@ using GeoStateRefDevice
 
 using SPConstGeo = std::shared_ptr<const celeritas::GeoParams>;
 
-//! Input struct
+//---------------------------------------------------------------------------//
+//! Input and return structs
 struct GCheckInput
 {
     std::vector<celeritas::GeoTrackInitializer> init;
@@ -36,16 +37,24 @@ struct GCheckInput
     GeoStateRefDevice                           state;
 };
 
+//! Output results
+struct GCheckOutput
+{
+    std::vector<int>    ids;
+    std::vector<double> distances;
+};
+
+//---------------------------------------------------------------------------//
 //! Run tracking on the CPU
-void run_cpu(const SPConstGeo&          geo_params,
-             const GeoTrackInitializer* track_init,
-             int                        max_steps);
+GCheckOutput run_cpu(const SPConstGeo&          geo_params,
+                     const GeoTrackInitializer* track_init,
+                     int                        max_steps);
 
 //! Run tracking on the GPU
-void run_gpu(GCheckInput init);
+GCheckOutput run_gpu(GCheckInput init);
 
 #if !CELERITAS_USE_CUDA
-inline void run_gpu(GCheckInput)
+inline GCheckOutput run_gpu(GCheckInput)
 {
     CELER_NOT_CONFIGURED("CUDA");
 }

@@ -50,15 +50,10 @@ __global__ void gcheck_kernel(const GeoParamsCRefDevice  params,
     int istep = 0;
     do
     {
-        // Save current ID and distance to travel
+        // Propagate Save next-volume ID and distance to travel
         auto step        = propagate();
         ids[istep]       = step.volume;
         distances[istep] = step.distance;
-        printf("tid=%i step=%i: volid=%i, dist=%f\n",
-               tid.get(),
-               istep,
-               (geo.is_outside() ? -1 : (int)step.volume.get()),
-               step.distance);
         ++istep;
     } while (!geo.is_outside() && istep < max_steps);
 }
@@ -69,17 +64,13 @@ __global__ void gcheck_kernel(const GeoParamsCRefDevice  params,
 /*!
  *  Run tracking on the GPU
  */
-void run_gpu(GCheckInput input)
+GCheckOutput run_gpu(GCheckInput input)
 {
-    // using StateStore
-    //     = celeritas::CollectionStateStore<GeoStateData, MemSpace::device>;
-
     CELER_EXPECT(input.params);
     CELER_EXPECT(input.state);
     CELER_EXPECT(input.max_steps > 0);
 
     // Temporary device data for kernel
-    // StateStore geo_states = StateStore(input.params.device_pointers(), 1);
     thrust::device_vector<GeoTrackInitializer> tracks(input.init.begin(),
                                                       input.init.end());
     thrust::device_vector<VolumeId> ids(input.init.size() * input.max_steps);
@@ -95,9 +86,31 @@ void run_gpu(GCheckInput input)
                             input.max_steps,
                             raw_pointer_cast(ids.data()),
                             raw_pointer_cast(distances.data()));
-    CELER_CUDA_CHECK_ERROR();
 
+    CELER_CUDA_CHECK_ERROR();
     CELER_CUDA_CALL(cudaDeviceSynchronize());
+
+    // Copy result back to CPU
+    GCheckOutput                result;
+    thrust::host_vector<double> test  = distances;
+    size_type                   nstep = 0;
+    for (auto id : thrust::host_vector<VolumeId>(ids))
+    {
+        ++nstep;
+        if (id)
+            result.ids.push_back(id.get());
+        else
+        {
+            result.ids.push_back(-1);
+            break;
+        }
+    }
+    // Return exact vector size for proper comparison with CPU
+    result.distances.resize(nstep);
+    thrust::copy(
+        distances.begin(), distances.begin() + nstep, result.distances.begin());
+
+    return result;
 }
 
 //---------------------------------------------------------------------------//
