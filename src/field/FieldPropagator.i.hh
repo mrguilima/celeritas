@@ -12,10 +12,11 @@ namespace celeritas
 /*!
  * Construct with shared field parameters and the field driver.
  */
+template<class DriverT>
 CELER_FUNCTION
-FieldPropagator::FieldPropagator(GeoTrackView*            track,
-                                 const ParticleTrackView& particle,
-                                 FieldDriver&             driver)
+FieldPropagator<DriverT>::FieldPropagator(GeoTrackView*            track,
+                                          const ParticleTrackView& particle,
+                                          DriverT&                 driver)
     : track_(track), driver_(driver)
 {
     CELER_ASSERT(particle.charge() != zero_quantity());
@@ -38,7 +39,9 @@ FieldPropagator::FieldPropagator(GeoTrackView*            track,
  * trajectory for a given step length within a required accuracy or intersects
  * with a new volume (geometry limited step).
  */
-CELER_FUNCTION auto FieldPropagator::operator()(real_type step) -> result_type
+template<class DriverT>
+CELER_FUNCTION auto FieldPropagator<DriverT>::operator()(real_type step)
+    -> result_type
 {
     result_type result;
 
@@ -102,10 +105,11 @@ CELER_FUNCTION auto FieldPropagator::operator()(real_type step) -> result_type
  * Check whether the final position of the field integration for a given step
  * is inside the current volume or beyond any boundary of adjacent volumes.
  */
-CELER_FUNCTION
-void FieldPropagator::query_intersection(const Real3&  beg_pos,
-                                         const Real3&  end_pos,
-                                         Intersection* intersect)
+template<class DriverT>
+CELER_FUNCTION void
+FieldPropagator<DriverT>::query_intersection(const Real3&  beg_pos,
+                                             const Real3&  end_pos,
+                                             Intersection* intersect)
 {
     intersect->intersected = false;
 
@@ -142,9 +146,9 @@ void FieldPropagator::query_intersection(const Real3&  beg_pos,
  * Find the intersection point within a required accuracy using an iterative
  * method and return the final state by the field driver.
  */
-CELER_FUNCTION
-OdeState FieldPropagator::find_intersection(const OdeState& beg_state,
-                                            Intersection*   intersect)
+template<class DriverT>
+CELER_FUNCTION OdeState FieldPropagator<DriverT>::find_intersection(
+    const OdeState& beg_state, Intersection* intersect)
 {
     intersect->intersected = false;
     Real3 beg_pos          = beg_state.pos;
@@ -159,6 +163,16 @@ OdeState FieldPropagator::find_intersection(const OdeState& beg_state,
         real_type step = driver_(intersect->step, &end_state);
         CELER_ASSERT(step == intersect->step);
 
+        // Update the intersect candidate point
+        Real3 dir = end_state.pos;
+        axpy(real_type(-1.0), beg_pos, &dir);
+        normalize_direction(&dir);
+
+        real_type safety      = 0;
+        real_type linear_step = track_->compute_step(beg_pos, dir, &safety);
+        intersect->pos        = beg_pos;
+        axpy(linear_step, dir, &intersect->pos);
+
         // Check whether end_state point is within an acceptable tolerance
         // from the proposed intersect position on a boundary
         Real3 delta = end_state.pos;
@@ -171,17 +185,13 @@ OdeState FieldPropagator::find_intersection(const OdeState& beg_state,
             // Estimate a new trial step with the updated position of end_state
             real_type trial_step = intersect->step;
 
-            Real3 dir = end_state.pos;
-            axpy(real_type(-1.0), beg_pos, &dir);
-            normalize_direction(&dir);
-            real_type safety      = 0;
-            real_type linear_step = track_->compute_step(beg_pos, dir, &safety);
+            Real3 chord = end_state.pos;
+            axpy(real_type(-1.0), beg_pos, &chord);
+            real_type length = norm(chord);
+            CELER_ASSERT(length > 0);
 
-            intersect->scale = (linear_step / intersect->step);
+            intersect->scale = (linear_step / length);
             intersect->step  = trial_step * intersect->scale;
-
-            intersect->pos = beg_pos;
-            axpy(linear_step, dir, &intersect->pos);
         }
     } while (!intersect->intersected && --remaining_steps > 0);
 

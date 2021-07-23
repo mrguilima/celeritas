@@ -14,9 +14,10 @@ namespace celeritas
 /*!
  * Construct with shared data and the stepper.
  */
+template<class StepperT>
 CELER_FUNCTION
-FieldDriver::FieldDriver(const FieldParamsPointers&           shared,
-                         RungeKuttaStepper<MagFieldEquation>& stepper)
+FieldDriver<StepperT>::FieldDriver(const FieldParamsPointers& shared,
+                                   StepperT&                  stepper)
     : shared_(shared), stepper_(stepper)
 {
     CELER_ENSURE(shared_);
@@ -34,8 +35,9 @@ FieldDriver::FieldDriver(const FieldParamsPointers&           shared,
  * within a reference accuracy. Otherwise, the more accurate step integration
  * (advance_accurate) will be performed.
  */
-CELER_FUNCTION
-real_type FieldDriver::operator()(real_type step, OdeState* state)
+template<class StepperT>
+CELER_FUNCTION real_type FieldDriver<StepperT>::
+                         operator()(real_type step, OdeState* state)
 {
     // Output with a step control error
     FieldOutput output = this->find_next_chord(step, *state);
@@ -64,15 +66,13 @@ real_type FieldDriver::operator()(real_type step, OdeState* state)
  * Find the next acceptable chord of which the miss-distance is smaller than
  * a given reference (delta_chord) and evaluate the associated error.
  */
+template<class StepperT>
 CELER_FUNCTION auto
-FieldDriver::find_next_chord(real_type step, const OdeState& state)
+FieldDriver<StepperT>::find_next_chord(real_type step, const OdeState& state)
     -> FieldOutput
 {
     // Output with a step control error
     FieldOutput output;
-
-    // Try with the proposed step
-    output.step_taken = step;
 
     bool          succeeded       = false;
     unsigned int  remaining_steps = shared_.max_nsteps;
@@ -80,6 +80,7 @@ FieldDriver::find_next_chord(real_type step, const OdeState& state)
 
     do
     {
+        // Try with the proposed step
         result = stepper_(step, state);
 
         // Check whether the distance to the chord is small than the reference
@@ -95,16 +96,16 @@ FieldDriver::find_next_chord(real_type step, const OdeState& state)
         else
         {
             // Estimate a new trial chord with a relative scale
-            output.step_taken
-                *= std::fmax(std::sqrt(shared_.delta_chord / dchord), half());
+            step *= std::fmax(std::sqrt(shared_.delta_chord / dchord), half());
         }
     } while (!succeeded && (--remaining_steps > 0));
 
     // TODO: loop check and handle rare cases if happen
     CELER_ASSERT(succeeded);
 
-    // Update new position and momentum
-    output.state = result.end_state;
+    // Update step, position and momentum
+    output.step_taken = step;
+    output.state      = result.end_state;
 
     return output;
 }
@@ -117,9 +118,9 @@ FieldDriver::find_next_chord(real_type step, const OdeState& state)
  * sub-steps within a required tolerance until the the accumulated curved path
  * is equal to the input step length.
  */
-CELER_FUNCTION real_type FieldDriver::accurate_advance(real_type step,
-                                                       OdeState* state,
-                                                       real_type hinitial)
+template<class StepperT>
+CELER_FUNCTION real_type FieldDriver<StepperT>::accurate_advance(
+    real_type step, OdeState* state, real_type hinitial)
 {
     CELER_ASSERT(step > 0);
 
@@ -173,8 +174,9 @@ CELER_FUNCTION real_type FieldDriver::accurate_advance(real_type step,
  *
  * Helper function for accurate_advance.
  */
+template<class StepperT>
 CELER_FUNCTION auto
-FieldDriver::integrate_step(real_type step, const OdeState& state)
+FieldDriver<StepperT>::integrate_step(real_type step, const OdeState& state)
     -> FieldOutput
 {
     // Output with a next proposed step
@@ -210,8 +212,9 @@ FieldDriver::integrate_step(real_type step, const OdeState& state)
  * Advance within a relative truncation error and estimate a good step size
  * for the next integration.
  */
+template<class StepperT>
 CELER_FUNCTION auto
-FieldDriver::one_good_step(real_type step, const OdeState& state)
+FieldDriver<StepperT>::one_good_step(real_type step, const OdeState& state)
     -> FieldOutput
 {
     // Output with a proposed next step
@@ -262,8 +265,9 @@ FieldDriver::one_good_step(real_type step, const OdeState& state)
 /*!
  * Estimate the new predicted step size based on the error estimate.
  */
-CELER_FUNCTION
-real_type FieldDriver::new_step_size(real_type step, real_type rel_error) const
+template<class StepperT>
+CELER_FUNCTION real_type
+               FieldDriver<StepperT>::new_step_size(real_type step, real_type rel_error) const
 {
     CELER_ASSERT(rel_error > 0);
     real_type scale_factor

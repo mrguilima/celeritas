@@ -7,7 +7,7 @@
 //---------------------------------------------------------------------------//
 
 #include "field/RungeKuttaStepper.hh"
-#include "field/MagField.hh"
+#include "field/UniformMagField.hh"
 #include "field/MagFieldEquation.hh"
 
 #include "base/Range.hh"
@@ -20,6 +20,7 @@
 #include "celeritas_test.hh"
 
 #include "RungeKutta.test.hh"
+#include "detail/MagTestTraits.hh"
 
 using namespace celeritas;
 using namespace celeritas_test;
@@ -67,9 +68,12 @@ class RungeKuttaTest : public Test
 TEST_F(RungeKuttaTest, host)
 {
     // Construct the Runge-Kutta stepper
-    MagField         field({0, 0, param.field_value});
-    MagFieldEquation equation(field, units::ElementaryCharge{-1});
-    RungeKuttaStepper<MagFieldEquation> rk4(equation);
+
+    UniformMagField field({0, 0, param.field_value});
+
+    using RKTraits = detail::MagTestTraits<UniformMagField, RungeKuttaStepper>;
+    RKTraits::Equation_t equation(field, units::ElementaryCharge{-1});
+    RKTraits::Stepper_t  rk4(equation);
 
     // Test parameters and the sub-step size
     real_type hstep = 2.0 * constants::pi * param.radius / param.nsteps;

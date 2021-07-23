@@ -55,7 +55,7 @@ PhysicsTrackView::operator=(const Initializer_t&)
  */
 CELER_FUNCTION void PhysicsTrackView::interaction_mfp(real_type count)
 {
-    CELER_EXPECT(count > 0);
+    CELER_EXPECT(count >= 0);
     this->state().interaction_mfp = count;
 }
 
@@ -65,7 +65,7 @@ CELER_FUNCTION void PhysicsTrackView::interaction_mfp(real_type count)
  */
 CELER_FUNCTION void PhysicsTrackView::step_length(real_type distance)
 {
-    CELER_EXPECT(distance > 0);
+    CELER_EXPECT(distance >= 0);
     this->state().step_length = distance;
 }
 
@@ -75,7 +75,7 @@ CELER_FUNCTION void PhysicsTrackView::step_length(real_type distance)
  */
 CELER_FUNCTION void PhysicsTrackView::macro_xs(real_type inv_distance)
 {
-    CELER_EXPECT(inv_distance > 0);
+    CELER_EXPECT(inv_distance >= 0);
     this->state().macro_xs = inv_distance;
 }
 
@@ -238,7 +238,7 @@ PhysicsTrackView::use_integral_xs(ParticleProcessId ppid) const
 /*!
  * Energy corresponding to the maximum cross section for the material.
  *
- * If the \c EnergyLossProcess is "true", the integral approach is used and
+ * If the \c IntegralXsProcess is "true", the integral approach is used and
  * that process has both energy loss and macro xs tables. If \c
  * energy_max_xs[material] is nonzero, both of those tables are present for
  * this material.
@@ -249,8 +249,8 @@ PhysicsTrackView::energy_max_xs(ParticleProcessId ppid) const
     CELER_EXPECT(ppid < this->num_particle_processes());
 
     real_type                result = 0;
-    const EnergyLossProcess& process
-        = params_.energy_loss[this->process_group().energy_loss[ppid.get()]];
+    const IntegralXsProcess& process
+        = params_.integral_xs[this->process_group().integral_xs[ppid.get()]];
     if (process)
     {
         CELER_ASSERT(material_ < process.energy_max_xs.size());
@@ -268,7 +268,10 @@ PhysicsTrackView::energy_max_xs(ParticleProcessId ppid) const
  * cross section (calculated at initialization) is in the interval \f$ [\xi
  * E_0, E_0) \f$, where \f$ E_0 \f$ is the pre-step energy and \f$ \xi \f$ is
  * \c energy_fraction, \f$ \sigma_{\max} \f$ is set to the global maximum.
- * Otherwise, \f$ \sigma_{\max} = \max( \sigma(E_0), \sigma(\xi E_0) ) \f$.
+ * Otherwise, \f$ \sigma_{\max} = \max( \sigma(E_0), \sigma(\xi E_0) ) \f$. If
+ * the cross section is not monotonic in the interval [\xi E_0, E_0) and the
+ * interval does not contain the global maximum, the post-step cross section
+ * \f$ \sigma(E_1) \f$ may be larger than \f$ \sigma_{\max} \f$.
  */
 CELER_FUNCTION real_type PhysicsTrackView::calc_xs(ParticleProcessId ppid,
                                                    ValueGridId       grid_id,
@@ -314,6 +317,15 @@ CELER_FUNCTION ModelId PhysicsTrackView::hardwired_model(ParticleProcessId ppid,
 
 //---------------------------------------------------------------------------//
 /*!
+ * Particle-process ID of the process with the de/dx and range tables.
+ */
+CELER_FUNCTION ParticleProcessId PhysicsTrackView::eloss_ppid() const
+{
+    return this->process_group().eloss_ppid;
+}
+
+//---------------------------------------------------------------------------//
+/*!
  * Models that apply to the given process ID.
  */
 CELER_FUNCTION auto
@@ -341,8 +353,7 @@ PhysicsTrackView::make_model_finder(ParticleProcessId ppid) const
  */
 CELER_FUNCTION real_type PhysicsTrackView::range_to_step(real_type range) const
 {
-    CELER_EXPECT(range > 0);
-
+    CELER_ASSERT(range >= 0);
     const real_type rho = params_.scaling_min_range;
     if (range < rho)
         return range;

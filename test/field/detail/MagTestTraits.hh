@@ -3,28 +3,31 @@
 // See the top-level COPYRIGHT file for details.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 //---------------------------------------------------------------------------//
-//! \file MagField.i.hh
+//! \file MagTestTraits.hh
 //---------------------------------------------------------------------------//
+#pragma once
 
-#include "base/Assert.hh"
+#include "field/MagFieldEquation.hh"
+#include "field/FieldDriver.hh"
 
 namespace celeritas
 {
-//---------------------------------------------------------------------------//
-/*!
- * Construct from a uniform magnetic field.
- */
-CELER_FUNCTION
-MagField::MagField(const Real3& value) : value_(value) {}
-
-//---------------------------------------------------------------------------//
-/*!
- * Return a magnetic field value at a given position.
- */
-CELER_FUNCTION Real3 MagField::operator()() const
+namespace detail
 {
-    return value_;
-}
+//---------------------------------------------------------------------------//
+/*!
+ * A trait class that encapsulates a set of template classes for testing
+ * the magnetic field driver and stepper.
+ */
+template<class Field, template<class> class Stepper>
+struct MagTestTraits
+{
+    using Field_t    = Field;
+    using Equation_t = MagFieldEquation<Field_t>;
+    using Stepper_t  = Stepper<Equation_t>;
+    using Driver_t   = FieldDriver<Stepper_t>;
+};
 
 //---------------------------------------------------------------------------//
+} // namespace detail
 } // namespace celeritas

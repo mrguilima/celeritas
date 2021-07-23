@@ -6,11 +6,12 @@
 //! \file RungeKutta.test.cu
 //---------------------------------------------------------------------------//
 #include "RungeKutta.test.hh"
+#include "detail/MagTestTraits.hh"
 
 #include "base/KernelParamCalculator.cuda.hh"
 #include <thrust/device_vector.h>
 
-#include "field/MagField.hh"
+#include "field/UniformMagField.hh"
 #include "field/MagFieldEquation.hh"
 #include "field/RungeKuttaStepper.hh"
 #include "field/FieldInterface.hh"
@@ -42,9 +43,10 @@ __global__ void rk4_test_kernel(FieldTestParams param,
         return;
 
     // Construct the Runge-Kutta stepper
-    MagField         field({0, 0, param.field_value});
-    MagFieldEquation equation(field, units::ElementaryCharge{-1});
-    RungeKuttaStepper<MagFieldEquation> rk4(equation);
+    UniformMagField field({0, 0, param.field_value});
+    using RKTraits = detail::MagTestTraits<UniformMagField, RungeKuttaStepper>;
+    RKTraits::Equation_t equation(field, units::ElementaryCharge{-1});
+    RKTraits::Stepper_t  rk4(equation);
 
     // Initial state and the epected state after revolutions
     OdeState y;

@@ -128,6 +128,29 @@ if(CELERITAS_USE_VecGeom)
 endif()
 
 #-----------------------------------------------------------------------------#
+# Field - User field
+
+celeritas_cudaoptional_test(field/UserParamField)
+
+set(CELER_USERFIELD_SOURCES
+  field/detail/MagFieldMap.cc
+  field/detail/CMSFieldMapReader.cc
+)
+if(CELERITAS_USE_CUDA)
+  list(APPEND CELER_USERFIELD_SOURCES
+    field/UserMapField.test.cu
+  )
+endif()
+celeritas_add_library(CeleritasUserFieldTest ${CELER_USERFIELD_SOURCES})
+celeritas_target_link_libraries(CeleritasUserFieldTest
+  PUBLIC Celeritas::Core
+)
+
+celeritas_setup_tests(SERIAL PREFIX fieldmap
+  LINK_LIBRARIES CeleritasUserFieldTest)
+celeritas_add_test(field/UserMapField.test.cc GPU)
+
+#-----------------------------------------------------------------------------#
 # Geometry
 
 if(CELERITAS_USE_VecGeom)
@@ -220,6 +243,7 @@ celeritas_add_test(physics/em/EPlusGG.test.cc)
 celeritas_add_test(physics/em/KleinNishina.test.cc)
 celeritas_add_test(physics/em/LivermorePE.test.cc)
 celeritas_add_test(physics/em/MollerBhabha.test.cc)
+celeritas_add_test(physics/em/MuBremsstrahlung.test.cc)
 celeritas_add_test(physics/em/Rayleigh.test.cc)
 celeritas_add_test(physics/em/SeltzerBerger.test.cc)
 celeritas_add_test(physics/em/TsaiUrbanDistribution.test.cc)
@@ -235,15 +259,18 @@ celeritas_add_test(physics/em/ImportedProcesses.test.cc ${_needs_root}
 celeritas_setup_tests(SERIAL PREFIX random)
 
 celeritas_cudaoptional_test(random/RngEngine)
+celeritas_cudaoptional_test(random/curand/CurandPerformance)
 celeritas_add_test(random/Selector.test.cc)
 
 celeritas_add_test(random/distributions/BernoulliDistribution.test.cc)
 celeritas_add_test(random/distributions/ExponentialDistribution.test.cc)
+celeritas_add_test(random/distributions/GammaDistribution.test.cc)
 celeritas_add_test(random/distributions/IsotropicDistribution.test.cc)
+celeritas_add_test(random/distributions/NormalDistribution.test.cc)
+celeritas_add_test(random/distributions/PoissonDistribution.test.cc)
 celeritas_add_test(random/distributions/RadialDistribution.test.cc)
 celeritas_add_test(random/distributions/ReciprocalDistribution.test.cc)
 celeritas_add_test(random/distributions/UniformRealDistribution.test.cc)
-
 
 #-----------------------------------------------------------------------------#
 # Sim

@@ -35,12 +35,11 @@ namespace celeritas
  *
  * \note This follows similar methods as in Geant4's G4PropagatorInField class.
  */
+template<class DriverT>
 class FieldPropagator
 {
   public:
-    //// TYPES ////
-
-    //! Output results
+    // Output results
     struct result_type
     {
         real_type distance;    //!< Curved distance traveled
@@ -51,20 +50,12 @@ class FieldPropagator
     // Construct with shared parameters and the field driver
     inline CELER_FUNCTION FieldPropagator(GeoTrackView*            track,
                                           const ParticleTrackView& particle,
-                                          FieldDriver&             driver);
+                                          DriverT&                 driver);
 
-    // Propagate in a field
+    // Propagation in a field
     inline CELER_FUNCTION result_type operator()(real_type step);
 
   private:
-    //// DATA ////
-
-    GeoTrackView* track_;
-    FieldDriver&  driver_;
-    OdeState      state_;
-
-    //// HELPER TYPES ////
-
     // A helper input/output for private member functions
     struct Intersection
     {
@@ -77,8 +68,6 @@ class FieldPropagator
         };
     };
 
-    //// HELPER FUNCTIONS ////
-
     // Check whether the final state is crossed any boundary of volumes
     inline CELER_FUNCTION void query_intersection(const Real3&  beg_pos,
                                                   const Real3&  end_pos,
@@ -87,6 +76,11 @@ class FieldPropagator
     // Find the intersection point if any boundary is crossed
     inline CELER_FUNCTION OdeState find_intersection(const OdeState& beg_state,
                                                      Intersection* intersect);
+
+  private:
+    GeoTrackView* track_;
+    DriverT&      driver_;
+    OdeState      state_;
 };
 
 //---------------------------------------------------------------------------//
