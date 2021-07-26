@@ -33,7 +33,7 @@ void run(std::istream& is)
 
     if (inp.count("cuda_stack_size"))
     {
-        GeoParams::set_cuda_stack_size(inp.at("cuda_stack_size").get<int>());
+        set_cuda_stack_size(inp.at("cuda_stack_size").get<int>());
     }
 
     // define track(s)
