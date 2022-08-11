@@ -341,6 +341,7 @@ CELER_FUNCTION real_type VecgeomTrackView::find_safety()
 
     // TODO: ComputeSafety can return negative safety distances: clamp it to
     // zero until we debug the underlying cause.
+    CELER_ENSURE(safety > real_type(-1e-12));
     return max<real_type>(safety, 0);
 }
 
