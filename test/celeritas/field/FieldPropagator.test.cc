@@ -150,6 +150,11 @@ class LayersTest : public FieldPropagatorTestBase
     const char* geometry_basename() const override { return "field-test"; }
 };
 
+class SimpleCmsTest : public FieldPropagatorTestBase
+{
+    const char* geometry_basename() const override { return "simple-cms"; }
+};
+
 //---------------------------------------------------------------------------//
 // HELPER CLASSES
 //---------------------------------------------------------------------------//
@@ -189,6 +194,69 @@ constexpr real_type unit_radius_field_strength{3501.9461121752274};
 //---------------------------------------------------------------------------//
 // TESTS
 //---------------------------------------------------------------------------//
+
+// Field really shouldn't matter to a gamma right?
+TEST_F(SimpleCmsTest, electron_stuck)
+{
+    auto particle = this->init_particle(this->particle()->find(pdg::electron()),
+                                        MevEnergy{4.25402379798713e-01});
+    UniformZField      field(1000);
+    FieldDriverOptions driver_options;
+    constexpr int      max_iter = 1000;
+
+    auto geo = this->init_geo(
+        {-2.43293925496543e+01, -1.75522265870979e+01, 2.80918346435833e+02},
+        {7.01343313647855e-01, -6.43327996599957e-01, 3.06996164784077e-01});
+
+    for (int i = 0; i < max_iter; ++i)
+    {
+        auto propagate = make_mag_field_propagator<DormandPrinceStepper>(
+            field, driver_options, particle, &geo);
+        auto result = propagate(1000);
+        EXPECT_TRUE(geo.is_on_boundary());
+
+        if (result.boundary)
+        {
+            geo.cross_boundary();
+        }
+    }
+}
+/*
+auto particle = this->init_particle(this->particle()->find(pdg::electron()),
+                                    MevEnergy{10000});
+
+// Construct field (shape and magnitude shouldn't matter)
+UniformZField field(unit_radius_field_strength);
+
+FieldDriverOptions driver_options;
+auto               stepper = make_mag_field_stepper<DiagnosticDPStepper>(
+    field, particle.charge());
+
+// Propagate inside box
+{
+    auto geo = this->make_geo_view();
+    geo = {{-16.087227963121755, 25.446544885005938, -292.912696131520},
+           {0.8, 0.6, 0}};
+    //       {0.82857863381654928, 0.3831593471865126, -0.4082234219717}};
+    auto propagate
+        = make_field_propagator(stepper, driver_options, particle, &geo);
+
+    stepper.reset_count();
+    do {
+        auto result = propagate(987);
+        real_type xx = geo.pos()[0], yy = geo.pos()[1];
+        real_type rad = std::sqrt(xx*xx + yy*yy);
+        printf("geo: pos=(%g; %g; %g) dir=(%f, %f, %f) dist=%g rad=%g
+volID=%li/%i, bndry=%i stepCount=%li\n", geo.pos()[0], geo.pos()[1],
+           geo.pos()[2],
+           geo.dir()[0],
+           geo.dir()[1],
+           geo.dir()[2],
+           result.distance, rad, geo.volume_id().get(), geo.volume_physid(),
+result.boundary, stepper.count()); if (result.boundary) geo.cross_boundary();
+    } while (!geo.is_outside());
+}
+*/
 
 TEST_F(TwoBoxTest, electron_interior)
 {
@@ -363,7 +431,9 @@ TEST_F(TwoBoxTest, gamma_pathological)
                                         MevEnergy{1});
 
     // Construct field (shape and magnitude shouldn't matter)
-    HorribleZField     field{1234.5, 5};
+    // HorribleZField     field{1234.5, 5};
+    UniformZField field(unit_radius_field_strength);
+
     FieldDriverOptions driver_options;
     auto               stepper = make_mag_field_stepper<DiagnosticDPStepper>(
         field, particle.charge());
@@ -375,6 +445,20 @@ TEST_F(TwoBoxTest, gamma_pathological)
             = make_field_propagator(stepper, driver_options, particle, &geo);
 
         auto result = propagate(3.0);
+        EXPECT_SOFT_EQ(3.0, result.distance);
+        EXPECT_FALSE(result.boundary);
+        EXPECT_VEC_SOFT_EQ(Real3({0, 0, 1}), geo.pos());
+        EXPECT_VEC_SOFT_EQ(Real3({0, 0, 1}), geo.dir());
+        EXPECT_EQ(1, stepper.count());
+
+        result = propagate(3.0);
+        EXPECT_SOFT_EQ(3.0, result.distance);
+        EXPECT_FALSE(result.boundary);
+        EXPECT_VEC_SOFT_EQ(Real3({0, 0, 4}), geo.pos());
+        EXPECT_VEC_SOFT_EQ(Real3({0, 0, 1}), geo.dir());
+        EXPECT_EQ(2, stepper.count());
+
+        result = propagate();
         EXPECT_SOFT_EQ(3.0, result.distance);
         EXPECT_FALSE(result.boundary);
         EXPECT_VEC_SOFT_EQ(Real3({0, 0, 1}), geo.pos());
