@@ -198,11 +198,14 @@ constexpr real_type unit_radius_field_strength{3501.9461121752274};
 // Field really shouldn't matter to a gamma right?
 TEST_F(SimpleCmsTest, amandas_test)
 {
-    auto particle = this->init_particle(this->particle()->find(pdg::electron()),
-                                        MevEnergy{4.25402379798713e-01});
+    auto particle = this->init_particle(
+        this->particle()->find(pdg::electron()), MevEnergy{4.2e-1});
+    //                                        MevEnergy{4.25402379798713e-01});
     UniformZField      field(1000);
     FieldDriverOptions driver_options;
     constexpr int      max_iter = 1000;
+    auto               stepper  = make_mag_field_stepper<DiagnosticDPStepper>(
+        field, particle.charge());
 
     auto geo = this->init_geo(
         {-2.43293925496543e+01, -1.75522265870979e+01, 2.80918346435833e+02},
@@ -210,10 +213,10 @@ TEST_F(SimpleCmsTest, amandas_test)
 
     for (int i = 0; i < max_iter; ++i)
     {
-        auto propagate = make_mag_field_propagator<DormandPrinceStepper>(
-            field, driver_options, particle, &geo);
+        auto propagate
+            = make_field_propagator(stepper, driver_options, particle, &geo);
         auto result = propagate(1000);
-        EXPECT_TRUE(geo.is_on_boundary());
+        // EXPECT_TRUE(geo.is_on_boundary());
 
         if (result.boundary)
         {
@@ -247,8 +250,7 @@ TEST_F(SimpleCmsTest, guilhermes_test)
         this->particle()->find(pdg::electron()), MevEnergy{10000});
 
     // Construct field (shape and magnitude shouldn't matter)
-    UniformZField field(unit_radius_field_strength);
-
+    UniformZField      field(1000);
     FieldDriverOptions driver_options;
     auto               stepper = make_mag_field_stepper<DiagnosticDPStepper>(
         field, particle.charge());
