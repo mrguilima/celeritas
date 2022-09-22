@@ -196,7 +196,7 @@ constexpr real_type unit_radius_field_strength{3501.9461121752274};
 //---------------------------------------------------------------------------//
 
 // Field really shouldn't matter to a gamma right?
-TEST_F(SimpleCmsTest, electron_stuck)
+TEST_F(SimpleCmsTest, amandas_test)
 {
     auto particle = this->init_particle(this->particle()->find(pdg::electron()),
                                         MevEnergy{4.25402379798713e-01});
@@ -219,44 +219,75 @@ TEST_F(SimpleCmsTest, electron_stuck)
         {
             geo.cross_boundary();
         }
+        real_type xx = geo.pos()[0], yy = geo.pos()[1];
+        real_type rad = std::sqrt(xx * xx + yy * yy);
+        printf(
+            "geo: pos=(%g; %g; %g) dir=(%f, %f, %f) dist=%g rad=%g "
+            "volID=%i/%i, bndry=%i stepCount=%li\n",
+            geo.pos()[0],
+            geo.pos()[1],
+            geo.pos()[2],
+            geo.dir()[0],
+            geo.dir()[1],
+            geo.dir()[2],
+            result.distance,
+            rad,
+            geo.volume_id().get(),
+            geo.volume_physid(),
+            result.boundary,
+            stepper.count());
+        if (result.boundary)
+            geo.cross_boundary();
     }
 }
-/*
-auto particle = this->init_particle(this->particle()->find(pdg::electron()),
-                                    MevEnergy{10000});
 
-// Construct field (shape and magnitude shouldn't matter)
-UniformZField field(unit_radius_field_strength);
-
-FieldDriverOptions driver_options;
-auto               stepper = make_mag_field_stepper<DiagnosticDPStepper>(
-    field, particle.charge());
-
-// Propagate inside box
+TEST_F(SimpleCmsTest, guilhermes_test)
 {
-    auto geo = this->make_geo_view();
-    geo = {{-16.087227963121755, 25.446544885005938, -292.912696131520},
-           {0.8, 0.6, 0}};
-    //       {0.82857863381654928, 0.3831593471865126, -0.4082234219717}};
-    auto propagate
-        = make_field_propagator(stepper, driver_options, particle, &geo);
+    auto particle = this->init_particle(
+        this->particle()->find(pdg::electron()), MevEnergy{10000});
 
-    stepper.reset_count();
-    do {
-        auto result = propagate(987);
-        real_type xx = geo.pos()[0], yy = geo.pos()[1];
-        real_type rad = std::sqrt(xx*xx + yy*yy);
-        printf("geo: pos=(%g; %g; %g) dir=(%f, %f, %f) dist=%g rad=%g
-volID=%li/%i, bndry=%i stepCount=%li\n", geo.pos()[0], geo.pos()[1],
-           geo.pos()[2],
-           geo.dir()[0],
-           geo.dir()[1],
-           geo.dir()[2],
-           result.distance, rad, geo.volume_id().get(), geo.volume_physid(),
-result.boundary, stepper.count()); if (result.boundary) geo.cross_boundary();
-    } while (!geo.is_outside());
+    // Construct field (shape and magnitude shouldn't matter)
+    UniformZField field(unit_radius_field_strength);
+
+    FieldDriverOptions driver_options;
+    auto               stepper = make_mag_field_stepper<DiagnosticDPStepper>(
+        field, particle.charge());
+
+    // Propagate inside box
+    {
+        auto geo = this->make_geo_view();
+        geo = {{-16.087227963121755, 25.446544885005938, -292.912696131520},
+               {0.8, 0.6, 0}};
+        //       {0.82857863381654928, 0.3831593471865126, -0.4082234219717}};
+        auto propagate
+            = make_field_propagator(stepper, driver_options, particle, &geo);
+
+        stepper.reset_count();
+        do
+        {
+            auto      result = propagate(987);
+            real_type xx = geo.pos()[0], yy = geo.pos()[1];
+            real_type rad = std::sqrt(xx * xx + yy * yy);
+            printf(
+                "geo: pos=(%g; %g; %g) dir=(%f, %f, %f) dist=%g rad=%g "
+                "volID=%i/%i, bndry=%i stepCount=%li\n",
+                geo.pos()[0],
+                geo.pos()[1],
+                geo.pos()[2],
+                geo.dir()[0],
+                geo.dir()[1],
+                geo.dir()[2],
+                result.distance,
+                rad,
+                geo.volume_id().get(),
+                geo.volume_physid(),
+                result.boundary,
+                stepper.count());
+            if (result.boundary)
+                geo.cross_boundary();
+        } while (!geo.is_outside());
+    }
 }
-*/
 
 TEST_F(TwoBoxTest, electron_interior)
 {
