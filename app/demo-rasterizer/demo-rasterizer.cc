@@ -23,6 +23,10 @@
 #include "corecel/sys/MpiCommunicator.hh"
 #include "corecel/sys/ScopedMpiInit.hh"
 #include "corecel/sys/Stopwatch.hh"
+#include "celeritas/ext/RootImporter.hh"
+#include "celeritas/geo/GeoMaterialParams.hh"
+#include "celeritas/io/ImportData.hh"
+#include "celeritas/mat/MaterialParams.hh"
 
 #include "RDemoRunner.hh"
 
@@ -59,11 +63,20 @@ void run(std::istream& is)
         inp.at("input").get<std::string>().c_str());
     timers["load"] = get_time();
 
+    // load ROOT-based data
+    std::string root_filename(inp.at("input").get<std::string>());
+    root_filename.replace(root_filename.find(".gdml"), 5, ".root");
+    RootImporter import_from_root(root_filename.c_str());
+    ImportData   data     = import_from_root();
+    const auto   mat_pars = MaterialParams::from_import(data);
+    const auto   geomat_pars
+        = GeoMaterialParams::from_import(data, geo_params, mat_pars);
+
     // Construct image
     ImageStore image(inp.at("image").get<ImageRunArgs>());
 
     // Construct runner
-    RDemoRunner run(geo_params);
+    RDemoRunner run(geo_params, geomat_pars);
     get_time = {};
     run(&image);
     timers["trace"] = get_time();
@@ -75,6 +88,12 @@ void run(std::istream& is)
     {
         vol_names.push_back(
             geo_params->id_to_label(celeritas::VolumeId(vol_id)).name);
+    }
+    std::vector<std::string> mat_names;
+    for (auto mat_id : celeritas::range(mat_pars->num_materials()))
+    {
+        mat_names.push_back(
+            mat_pars->id_to_label(celeritas::MaterialId(mat_id)).name);
     }
 
     // Write image

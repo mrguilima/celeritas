@@ -12,7 +12,8 @@
 #include "corecel/io/ColorUtils.hh"
 #include "corecel/io/Logger.hh"
 #include "corecel/sys/Stopwatch.hh"
-#include "celeritas/geo/GeoParams.hh"
+//#include "celeritas/geo/GeoParams.hh"
+#include "celeritas/global/CoreParams.hh"
 
 #include "ImageTrackView.hh"
 #include "RDemoKernel.hh"
@@ -25,10 +26,10 @@ namespace demo_rasterizer
 /*!
  * Construct with image parameters
  */
-RDemoRunner::RDemoRunner(SPConstGeo geometry)
-    : geo_params_(std::move(geometry))
+RDemoRunner::RDemoRunner(SPConstGeo geometry, SPConstGeoMaterial geomat)
+    : geo_params_(std::move(geometry)), geomat_params_(std::move(geomat))
 {
-    CELER_EXPECT(geo_params_);
+    CELER_EXPECT(geo_params_ && geomat_params_);
 }
 
 //---------------------------------------------------------------------------//
@@ -49,6 +50,7 @@ void RDemoRunner::operator()(ImageStore* image, int ntimes) const
     {
         Stopwatch get_time;
         trace(geo_params_->device_ref(),
+              geomat_params_->device_ref(),
               geo_state.ref(),
               image->device_interface());
         time = get_time();

@@ -277,8 +277,7 @@ class MaterialParamsImportTest : public Test
   protected:
     void SetUp() override
     {
-        root_filename_
-            = this->test_data_path("celeritas", "four-steel-slabs.root");
+        root_filename_ = this->test_data_path("celeritas", "cms-hllhc.root");
         RootImporter import_from_root(root_filename_.c_str());
         data_ = import_from_root();
     }
@@ -295,6 +294,13 @@ TEST_F(MaterialParamsImportTest, TEST_IF_CELERITAS_USE_ROOT(import_materials))
     EXPECT_EQ("G4_Galactic", material_params->id_to_label(MaterialId{0}).name);
     EXPECT_EQ("G4_STAINLESS-STEEL",
               material_params->id_to_label(MaterialId{1}).name);
+
+    for (auto mat_id : range(MaterialId{material_params->num_materials()}))
+    {
+        printf("mat %i: <%s>\n",
+               mat_id.unchecked_get(),
+               material_params->id_to_label(mat_id).name.c_str());
+    }
 
     /*!
      * Material

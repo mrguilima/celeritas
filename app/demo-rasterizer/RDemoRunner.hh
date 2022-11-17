@@ -9,7 +9,9 @@
 
 #include <memory>
 
+#include "celeritas/geo/GeoMaterialParams.hh"
 #include "celeritas/geo/GeoParams.hh"
+#include "celeritas/global/CoreParams.hh"
 
 #include "ImageStore.hh"
 
@@ -25,18 +27,21 @@ class RDemoRunner
     //!@{
     //! Type aliases
     using SPConstGeo = std::shared_ptr<const celeritas::GeoParams>;
+    using SPConstGeoMaterial
+        = std::shared_ptr<const celeritas::GeoMaterialParams>;
     using Args       = ImageRunArgs;
     //!@}
 
   public:
     // Construct with geometry
-    explicit RDemoRunner(SPConstGeo geometry);
+    explicit RDemoRunner(SPConstGeo geometry, SPConstGeoMaterial geomat);
 
     // Trace an image
     void operator()(ImageStore* image, int ntimes = 0) const;
 
   private:
     SPConstGeo geo_params_;
+    SPConstGeoMaterial geomat_params_;
 };
 
 //---------------------------------------------------------------------------//

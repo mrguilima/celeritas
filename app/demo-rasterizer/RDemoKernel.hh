@@ -8,6 +8,7 @@
 #pragma once
 
 #include "celeritas/geo/GeoData.hh"
+#include "celeritas/geo/GeoMaterialData.hh"
 
 #include "ImageData.hh"
 
@@ -17,8 +18,11 @@ namespace demo_rasterizer
 
 using GeoParamsCRefDevice = celeritas::DeviceCRef<celeritas::GeoParamsData>;
 using GeoStateRefDevice   = celeritas::DeviceRef<celeritas::GeoStateData>;
+using GeoMatCRefDevice
+    = celeritas::DeviceCRef<celeritas::GeoMaterialParamsData>;
 
 void trace(const GeoParamsCRefDevice& geo_params,
+           const GeoMatCRefDevice&    geomat_data,
            const GeoStateRefDevice&   geo_state,
            const ImageData&           image);
 

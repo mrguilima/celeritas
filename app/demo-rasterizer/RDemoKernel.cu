@@ -11,7 +11,9 @@
 
 #include "corecel/Assert.hh"
 #include "corecel/sys/KernelParamCalculator.device.hh"
+#include "celeritas/geo/GeoMaterialView.hh"
 #include "celeritas/geo/GeoTrackView.hh"
+#include "celeritas/global/CoreParams.hh"
 
 #include "ImageTrackView.hh"
 
@@ -26,14 +28,18 @@ namespace
 // KERNELS
 //---------------------------------------------------------------------------//
 
-__device__ int geo_id(const GeoTrackView& geo)
+using SPConstGeoMaterial = std::unique_ptr<celeritas::GeoMaterialParams>;
+
+__device__ int geo_id(const GeoTrackView& geo, const GeoMaterialView& geomat)
 {
     if (geo.is_outside())
         return -1;
-    return geo.volume_id().get();
+    int mat_id = geomat.material_id(geo.volume_id()).get();
+    return mat_id;
 }
 
 __global__ void trace_kernel(const GeoParamsCRefDevice geo_params,
+                             const GeoMatCRefDevice    geomat_data,
                              const GeoStateRefDevice   geo_state,
                              const ImageData           image_state)
 {
@@ -43,11 +49,12 @@ __global__ void trace_kernel(const GeoParamsCRefDevice geo_params,
 
     ImageTrackView image(image_state, tid);
     GeoTrackView   geo(geo_params, geo_state, tid);
+    GeoMaterialView geomat(geomat_data);
 
     // Start track at the leftmost point in the requested direction
     geo = GeoTrackInitializer{image.start_pos(), image.start_dir()};
 
-    int cur_id = geo_id(geo);
+    int cur_id = geo_id(geo, geomat);
 
     // Track along each pixel
     for (unsigned int i = 0; i < image_state.dims[1]; ++i)
@@ -77,7 +84,7 @@ __global__ void trace_kernel(const GeoParamsCRefDevice geo_params,
             // Cross surface and update post-crossing ID
             geo.move_to_boundary();
             geo.cross_boundary();
-            cur_id = geo_id(geo);
+            cur_id = geo_id(geo, geomat);
 
             if (--abort_counter == 0)
             {
@@ -115,6 +122,7 @@ __global__ void trace_kernel(const GeoParamsCRefDevice geo_params,
 // KERNEL INTERFACE
 //---------------------------------------------------------------------------//
 void trace(const GeoParamsCRefDevice& geo_params,
+           const GeoMatCRefDevice&    geomat_data,
            const GeoStateRefDevice&   geo_state,
            const ImageData&           image)
 {
@@ -124,6 +132,7 @@ void trace(const GeoParamsCRefDevice& geo_params,
                         celeritas::device().default_block_size(),
                         image.dims[0],
                         geo_params,
+                        geomat_data,
                         geo_state,
                         image);
 
