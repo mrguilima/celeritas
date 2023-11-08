@@ -46,8 +46,8 @@ namespace celeritas
 {
 
 // Defined in VecgeomParams.cu
-using SurfData = vgbrep::SurfData<vecgeom::Precision>;
-void send_surface_data_to_GPU(SurfData const& surfData);
+// using SurfData = vgbrep::SurfData<vecgeom::Precision>;
+// void send_surface_data_to_GPU(SurfData const& surfData);
 void cleanup_surface_data_gpu();
 
 namespace
@@ -353,11 +353,11 @@ void VecgeomParams::build_surface_tracking()
             ScopedTimeAndRedirect time_and_output_(
                 "BrepCudaManager::TransferSurfData");
 
-            auto const& brepHelper = vgbrep::BrepHelper<real_type>::Instance();
-            auto const& surfData = brepHelper.GetSurfData();
-            send_surface_data_to_GPU(surfData);
+            // auto const& brepHelper =
+            // vgbrep::BrepHelper<real_type>::Instance(); auto const& surfData
+            // = brepHelper.GetSurfData(); send_surface_data_to_GPU(surfData);
+            this->build_surface_tracking_device();
             CELER_DEVICE_CHECK_ERROR();
-            // this->build_surface_tracking_device();
         }
     }
 #else
