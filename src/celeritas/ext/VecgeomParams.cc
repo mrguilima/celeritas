@@ -79,10 +79,26 @@ int vecgeom_verbosity()
 bool VecgeomParams::use_surface_tracking()
 {
 #ifdef VECGEOM_USE_SURF
-    return true;
+    if (this->surface_model_supported_)
+        return true;
+    else
+        return false;
 #else
     return false;
 #endif
+}
+
+bool VecgeomParams::check_surf_model_support(std::string_view const& fname)
+{
+    auto surf_support = [fname](std::string const& name) -> bool {
+        auto found = fname.find(name);
+        return found != std::string::npos;
+    };
+    if (surf_support("testem3-flat"))
+        return true;
+    if (surf_support("simple-cms"))
+        return true;
+    return false;
 }
 
 //---------------------------------------------------------------------------//
@@ -91,7 +107,10 @@ bool VecgeomParams::use_surface_tracking()
  */
 VecgeomParams::VecgeomParams(std::string const& filename)
 {
-    CELER_LOG(status) << "Loading VecGeom geometry from GDML at " << filename;
+    surface_model_supported_ = this->check_surf_model_support(filename);
+    CELER_LOG(status) << "Loading VecGeom geometry from GDML at " << filename
+                      << " - surface_support: "
+                      << (surface_model_supported_ ? "true" : "false");
     if (!ends_with(filename, ".gdml"))
     {
         CELER_LOG(warning) << "Expected '.gdml' extension for GDML input";
@@ -121,6 +140,7 @@ VecgeomParams::VecgeomParams(G4VPhysicalVolume const* world)
 {
     CELER_EXPECT(world);
     ScopedMem record_mem("VecgeomParams.construct");
+    // surface_model_supported_ = this->check_surf_model_support(filename);
 
     {
         // Convert the geometry to VecGeom

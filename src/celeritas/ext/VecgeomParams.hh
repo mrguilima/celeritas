@@ -33,8 +33,11 @@ class VecgeomParams final : public GeoParamsInterface,
                             public ParamsDataInterface<VecgeomParamsData>
 {
   public:
-    // Whether surface tracking is being used
-    static bool use_surface_tracking();
+    // Whether surface tracking is to be used
+    bool use_surface_tracking();
+
+    // Check whether the filename provided is supported by the surface model
+    bool check_surf_model_support(std::string_view const& filename);
 
     // Construct from a GDML filename
     explicit VecgeomParams(std::string const& gdml_filename);
@@ -97,6 +100,7 @@ class VecgeomParams final : public GeoParamsInterface,
     std::unordered_map<G4LogicalVolume const*, VolumeId> g4log_volid_map_;
 
     BBox bbox_;
+    bool surface_model_supported_{false};
 
     // Host/device storage and reference
     HostRef host_ref_;
