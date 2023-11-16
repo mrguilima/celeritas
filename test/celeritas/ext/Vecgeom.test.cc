@@ -80,7 +80,18 @@ class VecgeomTestBase : public GenericVecgeomTestBase
         return result;
     }
 
-    virtual SpanStringView expected_log_levels() const { return {}; }
+    virtual SpanStringView expected_log_levels() const
+    {
+        if (VECGEOM_VERSION >= 0x020000)
+        {
+            static std::string_view const levels[] = {"warning"};
+            return make_span(levels);
+        }
+        else
+        {
+            return {};
+        }
+    }
 };
 
 //---------------------------------------------------------------------------//
@@ -119,6 +130,8 @@ class VecgeomGeantTestBase : public VecgeomTestBase
         this->geometry();
         return GenericVecgeomTestBase::get_import_geant_volumes(world_volume_);
     }
+
+    virtual SpanStringView expected_log_levels() const { return {}; }
 
   protected:
     // Note that this is static because the geometry may be loaded
@@ -277,19 +290,6 @@ class FourLevelsTest : public VecgeomTestBase
     SPConstGeo build_geometry() final
     {
         return this->load_vgdml("four-levels.gdml");
-    }
-
-    SpanStringView expected_log_levels() const final
-    {
-        if (VECGEOM_VERSION >= 0x020000)
-        {
-            static std::string_view const levels[] = {"warning"};
-            return make_span(levels);
-        }
-        else
-        {
-            return {};
-        }
     }
 };
 
@@ -944,19 +944,6 @@ class CmseTest : public VecgeomTestBase
 {
   public:
     SPConstGeo build_geometry() final { return this->load_vgdml("cmse.gdml"); }
-
-    SpanStringView expected_log_levels() const final
-    {
-        if (VECGEOM_VERSION >= 0x020000)
-        {
-            static std::string_view const levels[] = {"warning"};
-            return make_span(levels);
-        }
-        else
-        {
-            return {};
-        }
-    }
 };
 
 //---------------------------------------------------------------------------//
