@@ -145,6 +145,7 @@ TEST_F(BoundingBoxTest, TEST_IF_CELERITAS_JSON(io))
         nlohmann::json j = bbox;
         return j.dump();
 #else
+        (void)bbox;
         return std::string{};
 #endif
     };
@@ -152,6 +153,7 @@ TEST_F(BoundingBoxTest, TEST_IF_CELERITAS_JSON(io))
 #if CELERITAS_USE_JSON
         return nlohmann::json::parse(s).get<BoundingBoxT>();
 #else
+        (void)s;
         return BoundingBoxT{};
 #endif
     };
