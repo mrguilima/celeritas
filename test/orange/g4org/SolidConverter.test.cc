@@ -123,6 +123,7 @@ void SolidConverterTest::build_and_test(G4VSolid const& solid,
     // Recreate the converter at each step since the solid may be a
     // temporary rather than in a "store"
     SolidConverter convert{scale_, transform_};
+    solid.DumpInfo();
 
     // Convert the object
     auto obj = convert(solid);
@@ -323,14 +324,14 @@ TEST_F(SolidConverterTest, generictrap)
         G4GenericTrap("trap_uneven_twist",
                       1,
                       {
-                          {2, -1},
-                          {2, 1},
-                          {-2, 1},
                           {-2, -1},
-                          {0.5, -0.5},
-                          {1.5, 0.5},
-                          {-0.5, 0.5},
+                          {-2, 1},
+                          {2, 1},
+                          {2, -1},
                           {-1.5, -0.5},
+                          {-0.5, 0.5},
+                          {1.5, 0.5},
+                          {0.5, -0.5},
                       }),
         R"json({"_type":"shape","interior":{"_type":"gentrap","halfheight":0.1,"lower":[[0.2,-0.1],[0.2,0.1],[-0.2,0.1],[-0.2,-0.1]],"upper":[[0.05,-0.05],[0.15,0.05],[-0.05,0.05],[-0.15,-0.05]]},"label":"trap_uneven_twist"})json",
         {
