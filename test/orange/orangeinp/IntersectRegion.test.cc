@@ -700,13 +700,13 @@ TEST_F(GenTrapTest, full)
     EXPECT_VEC_SOFT_EQ(expected_twist_angles, this->get_twist_angles(trap));
 
     auto result = this->test(trap);
-    static char const expected_node[] = "all(+0, -1, +2, -3, -4, +5)";
+    static char const expected_node[] = "all(+0, -1, -2, -3, -4, +5)";
     static char const* const expected_surfaces[] = {
         "Plane: z=-4",
         "Plane: z=4",
-        "GQuadric: {0,0,0} {1,-1,0} {-28,-4,-4} 48",
+        "GQuadric: {0,0,0} {0,1,-1} {28,4,4} -48",
         "Plane: n={0,0.99228,0.12403}, d=1.4884",
-        "GQuadric: {0,0,0} {1,1,0} {-28,4,4} -48",
+        "GQuadric: {0,0,0} {0,1,1} {-28,4,4} -48",
         "Plane: y=-2",
     };
 
@@ -716,7 +716,6 @@ TEST_F(GenTrapTest, full)
     EXPECT_VEC_SOFT_EQ((Real3{-2, -2, -4}), result.exterior.lower());
     EXPECT_VEC_SOFT_EQ((Real3{2, 2, 4}), result.exterior.upper());
 
-    GTEST_SKIP() << "twisty point sampling fails!";
     this->check_corners(result.node_id, trap, 0.01);
 }
 
@@ -920,6 +919,8 @@ TEST_F(GenTrapTest, trap_full2)
     EXPECT_FALSE(result.interior) << result.interior;
     EXPECT_VEC_SOFT_EQ((Real3{-52, -20, -40}), result.exterior.lower());
     EXPECT_VEC_SOFT_EQ((Real3{54, 20, 40}), result.exterior.upper());
+
+    this->check_corners(result.node_id, trap, 1.0);
 }
 
 TEST_F(GenTrapTest, trap_quarter_twist)
@@ -975,9 +976,9 @@ TEST_F(GenTrapTest, trap_uneven_twist)
     static char const* const expected_surfaces[] = {
         "Plane: z=-1",
         "Plane: z=1",
-        "GQuadric: {0,0,0} {1,1,0} {-3,1,-3} 5",
+        "GQuadric: {0,0,0} {0,1,1} {-3,1,-3} 5",
         "Plane: n={0,0.97014,0.24254}, d=0.72761",
-        "GQuadric: {0,0,0} {1,1,0} {-3,1,3} -5",
+        "GQuadric: {0,0,0} {0,1,1} {-3,1,3} -5",
         "Plane: n={0,0.97014,-0.24254}, d=-0.72761",
     };
 
@@ -987,14 +988,13 @@ TEST_F(GenTrapTest, trap_uneven_twist)
     EXPECT_VEC_SOFT_EQ((Real3{-2, -1, -1}), result.exterior.lower());
     EXPECT_VEC_SOFT_EQ((Real3{2, 1, 1}), result.exterior.upper());
 
-    GTEST_SKIP() << "twisty point sampling fails!";
     this->check_corners(result.node_id, trap, 0.1);
 }
 
 TEST_F(GenTrapTest, trap_even_twist)
 {
     auto trap = GenTrap::from_trap(
-        1, Turn{0}, Turn{0}, {1, 2, 2, Turn{0}}, {1, 2, 2, Turn{0.125}});
+        1, Turn{0}, Turn{0}, {1, 2, 2, Turn{0}}, {0.5, 1, 1, Turn{0.125}});
 
     static real_type const expected_twist_angles[] = {0.125, 0, 0.125, 0};
     EXPECT_VEC_SOFT_EQ(expected_twist_angles, this->get_twist_angles(trap));
@@ -1004,8 +1004,6 @@ TEST_F(GenTrapTest, trap_even_twist)
         = {0.5, -0.5, 1.5, 0.5, -0.5, 0.5, -1.5, -0.5};
     EXPECT_VEC_SOFT_EQ(expected_lower, to_vec(trap.lower()));
     EXPECT_VEC_SOFT_EQ(expected_upper, to_vec(trap.upper()));
-
-    cout << repr(trap.lower()) << ',' << repr(trap.upper());
 }
 
 /*!

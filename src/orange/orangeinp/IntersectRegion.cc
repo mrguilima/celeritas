@@ -351,7 +351,7 @@ GenTrap GenTrap::from_trd(real_type halfz, Real2 const& lo, Real2 const& hi)
  * \arg theta Polar angle of line between center of bases
  * \arg phi Azimuthal angle of line between center of bases
  * \arg lo Trapezoidal face at -hz
- * \arg lo Trapezoidal face at +hz
+ * \arg hi Trapezoidal face at +hz
  */
 GenTrap GenTrap::from_trap(
     real_type hz, Turn theta, Turn phi, TrapFace const& lo, TrapFace const& hi)
@@ -513,6 +513,9 @@ void GenTrap::build(IntersectSurfaceBuilder& insert_surface) const
         else
         {
             // Insert a "twisted" surface (hyperbolic paraboloid)
+
+            // a,b,c (lo,hi) are coefficients of the line equations for the
+            // gentrap edges in the -hz,+hz planes, e.g. ax + by + c = 0
             auto alo = jlo[Y] - ilo[Y];
             auto ahi = jhi[Y] - ihi[Y];
             auto blo = ilo[X] - jlo[X];
@@ -520,16 +523,16 @@ void GenTrap::build(IntersectSurfaceBuilder& insert_surface) const
             auto clo = jlo[X] * ilo[Y] - ilo[X] * jlo[Y];
             auto chi = jhi[X] * ihi[Y] - ihi[X] * jhi[Y];
 
-            real_type xy = ahi - alo;
-            real_type yz = bhi - blo;
-            real_type x = hz_ * (ahi + alo);
-            real_type y = hz_ * (bhi + blo);
-            real_type z = chi - clo;
-            real_type s = hz_ * (clo + chi);
+            real_type eyz = bhi - blo;
+            real_type fzx = ahi - alo;
+            real_type gx = hz_ * (ahi + alo);
+            real_type hy = hz_ * (bhi + blo);
+            real_type iz = chi - clo;
+            real_type js = hz_ * (clo + chi);
 
             insert_surface(
                 Sense::inside,
-                GeneralQuadric{Real3{0, 0, 0}, {xy, yz, 0}, {x, y, z}, s},
+                GeneralQuadric{Real3{0, 0, 0}, {0, eyz, fzx}, {gx, hy, iz}, js},
                 "t" + std::to_string(i));
         }
     }
