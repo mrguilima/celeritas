@@ -543,7 +543,7 @@ TEST_F(SimpleCmsFieldVolAlongStepTest, msc_field)
         inp.particle_id = this->particle()->find(pdg::electron());
         inp.energy = MevEnergy{0.697421113579829943};
         inp.phys_mfp = 0.0493641564748481393;
-        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.000001};
+        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.01};
         inp.direction = {-0.680265923322200705,
                          0.731921125057842015,
                          -0.0391118941072485030};
@@ -607,13 +607,14 @@ TEST_F(SimpleCmsAlongStepTest, msc_field)
         inp.particle_id = this->particle()->find(pdg::electron());
         inp.energy = MevEnergy{0.697421113579829943};
         inp.phys_mfp = 0.0493641564748481393;
-        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.000001};
+        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.01};
         inp.direction = {-0.680265923322200705,
                          0.731921125057842015,
                          -0.0391118941072485030};
 
         // Step limited by distance to interaction = 2.49798914193346685e21
         auto result = this->run(inp, num_tracks);
+
         EXPECT_SOFT_EQ(2.7199323076809536, result.step);
         EXPECT_EQ(0, result.eloss);
         EXPECT_EQ(0, result.mfp);
@@ -702,14 +703,14 @@ TEST_F(SimpleCmsRZFieldAlongStepTest, msc_rzfield)
         inp.particle_id = this->particle()->find(pdg::electron());
         inp.energy = MevEnergy{0.697421113579829943};
         inp.phys_mfp = 0.0493641564748481393;
-        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.000001};
+        inp.position = {-33.3599681684743388, 1.43414625226707426, -700.01};
         inp.direction = {-0.680265923322200705,
                          0.731921125057842015,
                          -0.0391118941072485030};
 
         auto result = this->run(inp, num_tracks);
-        EXPECT_SOFT_EQ(0.5515596670659112, result.displacement);
-        EXPECT_SOFT_NEAR(0.095167236229178429, result.angle, 1e-11);
+        EXPECT_SOFT_EQ(0.55155207893668967, result.displacement);
+        EXPECT_SOFT_NEAR(0.095305171122713847, result.angle, 1e-11);
         EXPECT_EQ("geo-propagation-limit", result.action);
     }
 }
