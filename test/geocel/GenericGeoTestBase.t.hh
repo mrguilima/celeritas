@@ -181,12 +181,15 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
 {
     CELER_EXPECT(max_step > 0);
     TrackingResult result;
+    std::cout << "track() @sp0: " << pos << " along " << dir
+          << " with max_step=" << max_step << '\n';
 
     GeoTrackView geo = CheckedGeoTrackView{this->make_geo_track_view(pos, dir)};
     auto const& geo_params = *this->geometry();
     auto const& vol_inst = geo_params.volume_instances();
     real_type const inv_length = real_type{1} / this->unit_length();
     real_type const bump_tol = this->bump_tol() * this->unit_length();
+    std::cout << "track() @sp1: bump_tol=" << bump_tol <<'\n';
 
     if (geo.is_outside())
     {
@@ -200,14 +203,21 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
             geo.cross_boundary();
             EXPECT_TRUE(geo.is_on_boundary());
             --max_step;
+            std::cout << "track() @sp1A [OUTSIDE]: moved to boundary at "
+                      << geo.pos() * inv_length << " along " << geo.dir()
+                      <<" max_step="<< max_step <<'\n';
         }
     }
 
     while (!geo.is_outside() && max_step > 0)
     {
         result.volumes.push_back(this->volume_name(geo));
+        std::cout << "track() @sp2: volume=" << result.volumes.back()
+            << " sizes="<< result.volumes.size() <<", "
+            << result.volume_instances.size() <<'\n';
         if (vol_inst)
         {
+            // add volume instance name to result.volume_instances
             result.volume_instances.push_back([&] {
                 auto vi_id = geo.volume_instance_id();
                 if (!vi_id)
@@ -225,9 +235,15 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
                 }
                 return s;
             }());
+            std::cout<<"track() @sp2a: pushed "
+                     <<" "<< result.volume_instances.back() <<'\n';
         }
         auto next = geo.find_next_step();
         result.distances.push_back(next.distance * inv_length);
+        std::cout << "track() @sp3: next.dist=" << next.distance <<" "
+            << result.distances.back() <<" size="<< result.distances.size()
+            << " in volume "<< result.volumes.back()
+            << " next.bndry="<< next.boundary <<'\n';
         if (!next.boundary)
         {
             ADD_FAILURE() << "failed to find the next boundary while inside "
@@ -249,10 +265,22 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
             {
                 result.bumps.push_back(p * inv_length);
             }
+            std::cout<<"track() @sp3-bump: bump_tol=" << bump_tol
+                << " dist="<< next.distance
+                << " bdry=" << next.boundary
+                <<" new sizes: #dist="<< result.distances.size()
+                <<" #vols="<< result.volumes.size()
+                <<" #bumps="<< result.bumps.size() <<'\n';
         }
         else
         {
+            std::cout<<"track() @sp4: from"
+                     << geo.pos() * inv_length << " along " << geo.dir()
+                     << " + dist/2=" << next.distance * inv_length / 2;
             geo.move_internal(next.distance / 2);
+            std::cout<<" -> @halfway: "
+                     << geo.pos() * inv_length << " along " << geo.dir()
+                     << " max_step=" << max_step << '\n';
             try
             {
                 geo.find_next_step();
@@ -300,6 +328,9 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
             }
         }
         geo.move_to_boundary();
+        std::cout << "track() @sp5: moved to boundary at "
+                  << geo.pos() * inv_length << " along " << geo.dir()
+                  << " max_step=" << max_step << '\n';
         try
         {
             geo.cross_boundary();
@@ -312,7 +343,15 @@ auto GenericGeoTestBase<HP>::track(Real3 const& pos,
             break;
         }
         --max_step;
+        std::cout << "track() @sp6: crossed boundary at "
+                  << geo.pos() * inv_length << " along " << geo.dir()
+                  << " max_step=" << max_step << '\n';
     }
+    std::cout<< "track() @sp7: finished with "
+              << result.distances.size() << " dists ("<< result.distances.back() <<"), "
+              << result.volumes.size() << " vols ("<< result.volumes.back() <<"), "
+              << result.bumps.size() << " bumps ("<< result.bumps.back() <<"), and "
+              << result.halfway_safeties.size() << " halfway safeties\n";
 
     return result;
 }
