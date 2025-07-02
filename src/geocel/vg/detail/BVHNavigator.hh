@@ -257,6 +257,12 @@ class BVHNavigator
                                   vecgeom::NavigationState& out_state,
                                   Precision push = 0)
     {
+        printf("cel:det:BVHNav:CompStep&PropState: globPt=(%g; %g; %g), "
+               "globDir=(%g; %g; %g), step_limit: %f\n",
+               globalpoint.x(), globalpoint.y(), globalpoint.z(),
+               globaldir.x(), globaldir.y(), globaldir.z(), step_limit);
+        printf("in_state: "); in_state.Print();
+        printf("outstate: "); out_state.Print();
         // If we are on the boundary, push a bit more
         if (in_state.IsOnBoundary())
         {
@@ -436,6 +442,10 @@ class BVHNavigator
                          Vector3D const& globaldir,
                          vecgeom::NavigationState& state)
     {
+        printf("cel:det:BVHNav::RelocateToNextVolume: globPt=(%g; %g; %g), globdir=(%g: %g; %g)\n state: ",
+               globalpoint.x(), globalpoint.y(), globalpoint.z(),
+               globaldir.x(), globaldir.y(), globaldir.z());
+        state.Print();
         // Push the point inside the next volume.
         Vector3D pushed = globalpoint + kBoundaryPush * globaldir;
 
