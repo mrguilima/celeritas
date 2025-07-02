@@ -62,9 +62,9 @@ class VecgeomTrackView
 #ifdef VECGEOM_USE_SURF
     using Navigator = celeritas::detail::SurfNavigator;
 #elif VECGEOM_VERSION >= 0x020000
-    using Navigator = vecgeom::BVHNavigator;
+    using Navigator = vecgeom::BVHNavigator;  // v2.x-solid
 #else
-    using Navigator = celeritas::detail::BVHNavigator;
+    using Navigator = celeritas::detail::BVHNavigator;  // v1.x
 #endif
     //!@}
 
@@ -501,12 +501,20 @@ CELER_FUNCTION void VecgeomTrackView::cross_boundary()
         }
 #else
         // Some navigators require an lvalue temp_pos
+        std::printf(" Solid cross_bndry() @sp1a:\n vgstate: "); vgstate_.Print();
+        std::printf("   vgnext: "); vgnext_.Print();
         auto temp_pos = detail::to_vector(this->pos_);
         Navigator::RelocateToNextVolume(
             temp_pos, detail::to_vector(this->dir_), vgnext_);
+        std::printf(" Solid cross_bndry() @sp1b: pvol=<%p>\n vgstate: ",
+            vgnext_.Top());
+        vgstate_.Print();
+        std::printf("   vgnext: "); vgnext_.Print();
 #endif
     }
 
+    std::printf(" SolidMod cross_bndry() @sp2:\n vgstate: "); vgstate_.Print();
+    std::printf("   vgnext: "); vgnext_.Print();
     vgstate_ = vgnext_;
 
     CELER_ENSURE(this->is_on_boundary());
