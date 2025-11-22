@@ -5,7 +5,6 @@
 //! \file geocel/vg/detail/VecgeomSetup.cu
 //---------------------------------------------------------------------------//
 #include "VecgeomSetup.hh"
-
 #include <VecGeom/management/BVHManager.h>
 
 #include "corecel/data/DeviceVector.hh"
@@ -50,7 +49,7 @@ struct BvhGetter
 //! Copy the navigation table pointer address to global memory
 struct NavIndexGetter
 {
-    using pointer_type = NavIndex_t const*;
+    using pointer_type = VECGEOM_PRECISION_NAMESPACE::NavIndex_t const*;
     static constexpr char const label[] = "navindex";
 
     pointer_type* dest{nullptr};
@@ -117,9 +116,9 @@ CudaPointers<CudaBVH_t const> bvh_pointers_device()
 /*!
  * Get pointers to the device BVH after setup, for consistency checking.
  */
-CudaPointers<NavIndex_t const> navindex_pointers_device()
+CudaPointers<VECGEOM_PRECISION_NAMESPACE::NavIndex_t const> navindex_pointers_device()
 {
-    CudaPointers<NavIndex_t const> result;
+    CudaPointers<VECGEOM_PRECISION_NAMESPACE::NavIndex_t const> result;
 
     // Copy from kernel using 1-thread launch
     result.kernel = get_device_pointer<NavIndexGetter>();
