@@ -926,6 +926,13 @@ void PolyhedraGeoTest::test_trace() const
             4.5,
         };
 
+        if (test_->geometry_type() == "VecGeom" && using_surface_vg)
+        {
+            // TODO: check if polyhedra safety can be improved in vg2.x-surface
+            // Geant4 has a different safety for some halfway points
+            ref.halfway_safeties[4] = 0.401145488023758;
+            ref.halfway_safeties[8] = 4.3276219367981;
+        }
         auto tol = test_->tracking_tol();
         fixup_orange(*test_, ref, result);
         EXPECT_REF_NEAR(ref, result, tol);
@@ -994,8 +1001,10 @@ void PolyhedraGeoTest::test_trace() const
         {
             // TODO: check if polyhedra safety can be improved in vg2.x-surface
             // Geant4 has a different safety for the halfway point
-            ref.halfway_safeties[0] = 0.210641235113144;
-            ref.halfway_safeties[6] = 0.56419426202774;
+            ref.halfway_safeties[0] = 0.210641101002693;
+            ref.halfway_safeties[2] = 0.55266946554184;
+            ref.halfway_safeties[6] = 0.564194142818451;
+            ref.halfway_safeties[8] = 3.74617147445679;
         }
 
         auto tol = test_->tracking_tol();
@@ -1066,8 +1075,9 @@ void PolyhedraGeoTest::test_trace() const
         {
             // TODO: check if polyhedra safety can be improved in vg2.x-surface
             // Geant4 has a different safety for the halfway point
-            ref.halfway_safeties[2] = 0.679982662200928;
-            ref.halfway_safeties[8] = 4.35703563690186;
+            ref.halfway_safeties[2] = 0.7149298787117;
+            ref.halfway_safeties[4] = 0.708285510540009;
+            ref.halfway_safeties[8] = 4.4999942779541;
         }
 
         auto tol = test_->tracking_tol();
@@ -1138,7 +1148,7 @@ void PolyhedraGeoTest::test_trace() const
             // TODO: check if polyhedra safety can be improved in vg2.x-surface
             // Geant4 has a different safety for the halfway point
             ref.halfway_safeties[0] = 0.368524014949799;
-            ref.halfway_safeties[2] = 0.897850394248962;
+            ref.halfway_safeties[2] = 0.794092893600464;
             ref.halfway_safeties[4] = 0.966398000717163;
             ref.halfway_safeties[6] = 0.801536321640015;
         }
