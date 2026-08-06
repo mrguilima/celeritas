@@ -100,6 +100,7 @@ struct SimpleScores
     std::vector<real_type> z_positions;
     std::vector<size_type> volume_instance_ids;
     std::vector<size_type> volume_unique_instance_ids;
+    std::vector<std::string> creator_types;
 };
 
 struct SimpleScorer
@@ -120,6 +121,10 @@ struct SimpleScorer
                 hit.volume_instance.unchecked_get());
             scores.volume_unique_instance_ids.push_back(
                 hit.unique_instance.unchecked_get());
+            scores.creator_types.push_back(
+                hit.creator_type == GeneratorType::size_
+                    ? std::string{"unknown"}
+                    : std::string{to_cstring(hit.creator_type)});
         }
     }
 };
@@ -265,6 +270,98 @@ TEST_F(DetectorTest, simple)
         EXPECT_VEC_EQ(expected_volume_unique_instance_ids,
                       scores.volume_unique_instance_ids);
     }
+
+    // Direct-generated photons have no creator process, so every hit should
+    // report the "unknown" creator type
+    static std::string const expected_creator_types[] = {"unknown",
+                                                         "unknown",
+                                                         "unknown",
+                                                         "unknown",
+                                                         "unknown",
+                                                         "unknown",
+                                                         "unknown"};
+    EXPECT_VEC_EQ(expected_creator_types, scores.creator_types);
+}
+
+//---------------------------------------------------------------------------//
+// The creator process of each photon is carried through transport and is
+// available on the detector hit.
+
+TEST_F(DetectorTest, creator_type)
+{
+    using E = units::MevEnergy;
+    using GT = GeneratorType;
+    using TI = TrackInitializer;
+
+    // Record (detector ID, creator type) pairs as parallel printable vectors
+    std::vector<size_type> det_ids;
+    std::vector<std::string> creator_types;
+    osi_.problem.detectors.callback
+        = [&det_ids, &creator_types](Span<DetectorHit const> hits) {
+              for (auto const& hit : hits)
+              {
+                  det_ids.push_back(hit.detector.unchecked_get());
+                  creator_types.push_back(
+                      hit.creator_type == GeneratorType::size_
+                          ? std::string{"unknown"}
+                          : std::string{to_cstring(hit.creator_type)});
+              }
+          };
+
+    // Aim photons at different detectors and tag them with distinct creator
+    // processes (one photon has no creator, matching the default)
+    std::vector<TI> const inits{
+        TI{E{1e-6},
+           Real3{0, 0, 0},  // pos
+           Real3{1, 0, 0},  // dir (+x -> x-detectors)
+           Real3{0, 1, 0},  // pol
+           0,  // time
+           {},
+           ImplVolumeId{0},
+           GT::cherenkov},
+        TI{E{1e-6},
+           Real3{0, 0, 0},  // pos
+           Real3{0, 0, 1},  // dir (+z -> z-detectors)
+           Real3{0, 1, 0},  // pol
+           0,  // time
+           {},
+           ImplVolumeId{0},
+           GT::scintillation},
+        TI{E{1e-6},
+           Real3{0, 0, 0},  // pos
+           Real3{0, 1, 0},  // dir (+y -> y-detectors)
+           Real3{1, 0, 0},  // pol
+           0,  // time
+           {},
+           ImplVolumeId{0},
+           GT::wls},
+        TI{E{1e-6},
+           Real3{0, 0, 0},  // pos
+           Real3{0, 0, -1},  // dir (-z -> z-detectors)
+           Real3{0, 1, 0},  // pol
+           0,  // time
+           {},
+           ImplVolumeId{0}},  // no creator
+    };
+
+    // Set geometry filename
+    osi_.problem.model.geometry
+        = Test::test_data_path("geocel", "optical-box-det-tra.gdml");
+
+    // Create direct generator input
+    osi_.problem.generator = celeritas::inp::OpticalDirectGenerator{};
+
+    // Construct the runner and transport optical primaries
+    optical::Runner run(std::move(osi_));
+    run.insert(make_span(std::as_const(inits)));
+    run();
+
+    // Check that each photon hit the expected detector with its creator type
+    static size_type const expected_det_ids[] = {1, 2, 0, 2};
+    static std::string const expected_creator_types[]
+        = {"cherenkov", "scintillation", "wls", "unknown"};
+    EXPECT_VEC_EQ(expected_det_ids, det_ids);
+    EXPECT_VEC_EQ(expected_creator_types, creator_types);
 }
 
 //---------------------------------------------------------------------------//
