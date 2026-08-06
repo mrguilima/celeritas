@@ -24,6 +24,7 @@ Following Celeritas conventions:
 - **`SimParamsData<W, M>`**: Shared immutable parameters (max steps, iteration limits)
 - **`SimStateData<W, M>`**: Mutable per-track state
   - `primary_ids`: Originating Geant4 primary (for offload correlation)
+  - `creator_types`: Creating process (cherenkov, scintillation, wls, ...)
   - `time`: Lab-frame time elapsed since event start
   - `step_length`: Current step limit
   - `status`: Track status (inactive, initializing, alive, errored)
@@ -40,6 +41,7 @@ struct TrackInitializer {
     real_type time;
     PrimaryId primary;
     ImplVolumeId volume;
+    GeneratorType creator_type;  // default: GeneratorType::size_ (unknown)
 };
 ```
 
@@ -90,6 +92,39 @@ Besides `@TrackInitializer.hh`, `@SimData.hh`, and `@SimTrackView.hh` (see
 [File Organization](#file-organization)):
 - `@gen/GeneratorData.hh`: Distribution data for offload
 - `@WavelengthShiftData.hh`: WLS distribution data
+
+## Creator Process Tracking
+
+Every optical photon carries the process that created it (cherenkov,
+scintillation, wls, ...) as a `GeneratorType` on the detector hit, so users can
+correlate detected photons with their physical origin.
+
+### Semantics
+- `GeneratorType::cherenkov` / `scintillation`: set from the host
+  `GeneratorDistributionData.type` during generation
+- `GeneratorType::wls` / `wls2`: inherited from the absorbed parent photon's
+  creator process
+- `GeneratorType::size_` (unknown): default for directly-inserted
+  `TrackInitializer`s that have no creator information
+
+### Data Flow
+1. **Generation**: `CherenkovGenerator`/`ScintillationGenerator` stamp
+   `TrackInitializer.creator_type` from the distribution type
+2. **Offload**: `LocalOpticalTrackOffload` maps the Geant4 creator process name
+   to a `GeneratorType`
+3. **Initialization**: `CoreTrackView::operator=(TrackInitializer)` →
+   `SimTrackView::Initializer{primary, time, creator_type}`
+4. **Storage**: `SimStateData.creator_types[track_slot]`
+5. **Access**: `SimTrackView::creator_type()`
+6. **Detection**: `DetectorExecutor` copies `sim.creator_type()` onto each
+   `DetectorHit.creator_type`
+
+### Key Files
+- [TrackInitializer.hh](TrackInitializer.hh): Track initialization data
+- [SimData.hh](SimData.hh): Simulation state storage
+- [SimTrackView.hh](SimTrackView.hh): Per-track simulation interface
+- [DetectorData.hh](DetectorData.hh): Detector hit data (`DetectorHit.creator_type`)
+- [action/detail/DetectorExecutor.hh](action/detail/DetectorExecutor.hh): Fills detector hits
 
 ## Action/Executor Pattern
 
@@ -149,8 +184,18 @@ src/celeritas/optical/
 
 ## Key Conventions
 
-1. **Initialization**: All `TrackInitializer` instances must set all fields (including `primary`)
-2. **Units**: Energy is `units::MevEnergy`, positions are `Real3` in cm by default
+1. **Initialization**: All `TrackInitializer` instances must set all fields (including `primary`; `creator_type` may be left as `size_` for "unknown")
+2. **Validity**: Use `explicit operator bool()` for validation
+3. **Assignment**: Support cross-memory-space assignment via templated `operator=`
+4. **Collections**: Use `ItemId<T>`, `ItemRange<T>` for type-safe indexing
+5. **Units**: Energy is `units::MevEnergy`, positions are `Real3` in cm by default
+
+## Related Documentation
+
+- Main AGENTS.md (repository root): General Celeritas patterns
+- Action/Executor/Interactor paradigm: See main stepping loop examples
+- Collections guide: `src/corecel/data/Collection.hh`
+- Testing: `test/celeritas/optical/` directory
 
 ## Common Pitfalls
 
