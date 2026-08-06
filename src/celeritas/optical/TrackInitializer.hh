@@ -10,6 +10,7 @@
 #include "geocel/Types.hh"
 #include "celeritas/Quantities.hh"
 #include "celeritas/Types.hh"
+#include "celeritas/optical/Types.hh"
 
 namespace celeritas
 {
@@ -47,6 +48,8 @@ struct TrackInitializer
     PrimaryId primary;
     //! Starting volume
     ImplVolumeId volume{};
+    //! Process that created the photon (cherenkov, scintillation, wls, ...)
+    GeneratorType creator_type{GeneratorType::size_};
 };
 
 //---------------------------------------------------------------------------//

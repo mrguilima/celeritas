@@ -15,6 +15,7 @@
 #include "corecel/data/CollectionBuilder.hh"
 #include "celeritas/Quantities.hh"
 #include "celeritas/Types.hh"
+#include "celeritas/optical/Types.hh"
 
 namespace celeritas
 {
@@ -62,6 +63,7 @@ struct SimStateData
     //// DATA ////
 
     Items<PrimaryId> primary_ids;  //!< Originating primary
+    Items<GeneratorType> creator_types;  //!< Process that created the photon
     Items<real_type> time;  //!< Time elapsed in lab frame since start of event
     Items<real_type> step_length;
     Items<TrackStatus> status;
@@ -73,9 +75,9 @@ struct SimStateData
     //! Check whether the interface is assigned
     explicit CELER_FUNCTION operator bool() const
     {
-        return !primary_ids.empty() && !time.empty() && !step_length.empty()
-               && !status.empty() && !post_step_action.empty()
-               && !num_steps.empty();
+        return !primary_ids.empty() && !creator_types.empty() && !time.empty()
+               && !step_length.empty() && !status.empty()
+               && !post_step_action.empty() && !num_steps.empty();
     }
 
     //! State size
@@ -87,6 +89,7 @@ struct SimStateData
     {
         CELER_EXPECT(other);
         primary_ids = other.primary_ids;
+        creator_types = other.creator_types;
         time = other.time;
         step_length = other.step_length;
         status = other.status;
@@ -106,6 +109,7 @@ inline void resize(SimStateData<Ownership::value, M>* data, size_type size)
     CELER_EXPECT(size > 0);
 
     resize(&data->primary_ids, size);
+    resize(&data->creator_types, size);
     resize(&data->time, size);
     resize(&data->step_length, size);
 
