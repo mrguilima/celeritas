@@ -138,6 +138,21 @@ void LocalOpticalTrackOffload::Push(G4Track& g4track)
     init.polarization
         = static_array_cast<real_type>(to_array(g4track.GetPolarization()));
 
+    // Preserve the creating process for correlation with Geant4
+    auto* creator_process = g4track.GetCreatorProcess();
+    if (creator_process)
+    {
+        auto const name = creator_process->GetProcessName();
+        if (name == "Cerenkov")
+        {
+            init.creator_type = GeneratorType::cherenkov;
+        }
+        else if (name == "Scintillation")
+        {
+            init.creator_type = GeneratorType::scintillation;
+        }
+    }
+
     ScopedProfiling profile_this{"push"};
 
     buffer_.push_back(init);

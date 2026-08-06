@@ -32,6 +32,7 @@ struct DetectorHit
     VolumeUniqueInstanceId unique_instance;
     size_type num_steps{};
     real_type path_length{};
+    GeneratorType creator_type{GeneratorType::size_};  //!< Creating process
 
     //! An actual hit has a valid detector
     explicit CELER_CONSTEXPR_FUNCTION operator bool() const

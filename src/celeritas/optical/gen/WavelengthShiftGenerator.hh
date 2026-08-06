@@ -127,6 +127,7 @@ CELER_FUNCTION TrackInitializer WavelengthShiftGenerator::operator()(
                          ? time_constant_
                          : ExponentialDistribution(1_r / time_constant_)(rng));
     result.primary = distribution_.primary;
+    result.creator_type = distribution_.type;
 
     return result;
 }
