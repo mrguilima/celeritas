@@ -16,7 +16,9 @@
 #include "celeritas/Units.hh"
 #include "celeritas/inp/StandaloneInput.hh"
 #include "celeritas/optical/CoreParams.hh"
+#include "celeritas/optical/DetectorData.hh"
 #include "celeritas/optical/Runner.hh"
+#include "celeritas/optical/Types.hh"
 #include "celeritas/optical/gen/GeneratorData.hh"
 #include "celeritas/phys/GeneratorRegistry.hh"
 
@@ -297,6 +299,54 @@ TEST_F(DuneGeneratorTest, offload)
 
     EXPECT_EQ(1, result.counters.flushes);
     ASSERT_EQ(1, result.counters.generators.size());
+}
+
+//---------------------------------------------------------------------------//
+// The creator process set on each host distribution should be carried to the
+// detector hits.
+
+TEST_F(LArSphereGeneratorTest, creator_type)
+{
+    // Record the creator process of every detected photon
+    std::set<std::string> seen_creator_types;
+    osi_.detectors = {"detshell"};
+    osi_.problem.detectors.callback =
+        [&seen_creator_types](Span<optical::DetectorHit const> hits) {
+            for (auto const& hit : hits)
+            {
+                seen_creator_types.insert(
+                    hit.creator_type == GeneratorType::size_
+                        ? std::string{"unknown"}
+                        : std::string{optical::to_cstring(hit.creator_type)});
+            }
+        };
+
+    // Generate Cherenkov and scintillation photons
+    osi_.problem.generator = inp::OpticalOffloadGenerator{};
+    osi_.geant_setup.cherenkov = CherenkovPhysicsOptions{};
+    osi_.geant_setup.scintillation = ScintillationPhysicsOptions{};
+
+    // Create host distributions and copy to generator
+    auto const host_data
+        = this->make_distributions(osi_.problem.capacity.generators);
+
+    // Construct the runner and transport optical primaries
+    optical::Runner run(std::move(osi_));
+    run.insert(make_span(host_data));
+    auto result = run();
+
+    ASSERT_EQ(1, result.counters.flushes);
+    ASSERT_EQ(1, result.counters.generators.size());
+
+    // Every detected photon should be tagged with the creator process of its
+    // host distribution (cherenkov or scintillation)
+    EXPECT_EQ(seen_creator_types.count("unknown"), 0);
+    if (reference_configuration)
+    {
+        static std::string const expected_creator_types[]
+            = {"cherenkov", "scintillation"};
+        EXPECT_VEC_EQ(expected_creator_types, seen_creator_types);
+    }
 }
 
 TEST_F(WlsGeneratorTest, primary)
