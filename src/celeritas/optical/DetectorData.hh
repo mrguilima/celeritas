@@ -30,6 +30,7 @@ struct DetectorHit
     Real3 position{};
     VolumeInstanceId volume_instance;
     VolumeUniqueInstanceId unique_instance;
+    GeneratorType creator_type{GeneratorType::size_};  //!< Creating process
 
     //! An actual hit has a valid detector
     explicit CELER_CONSTEXPR_FUNCTION operator bool() const
