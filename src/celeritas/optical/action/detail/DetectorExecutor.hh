@@ -87,6 +87,7 @@ CELER_FUNCTION void DetectorExecutor::operator()(
     // Score a valid hit
     hit.detector = detector_id;
     hit.primary = sim.primary_id();
+    hit.creator_type = sim.creator_type();
     hit.energy = track.particle().energy();
     hit.time = sim.time();
     hit.position = geometry.pos();
