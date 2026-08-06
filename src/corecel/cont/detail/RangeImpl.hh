@@ -240,7 +240,6 @@ class range_iter
     // Subtract two range iterators
     CELER_CONSTEXPR_FUNCTION friend auto operator-(range_iter a, range_iter b)
     {
-        using TraitsT = RangeTypeTraits<T>;
         using DT = typename TraitsT::difference_type;
         return static_cast<DT>(TraitsT::to_counter(a.value()))
                - static_cast<DT>(TraitsT::to_counter(b.value()));
