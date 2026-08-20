@@ -328,7 +328,7 @@ TEST_F(LArSphereGeneratorTest, creator_type)
 
     // Create host distributions and copy to generator
     auto const host_data
-        = this->make_distributions(osi_.problem.capacity.generators);
+        = this->make_distributions(*osi_.problem.capacity.generators);
 
     // Construct the runner and transport optical primaries
     optical::Runner run(std::move(osi_));
