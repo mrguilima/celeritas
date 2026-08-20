@@ -20,6 +20,10 @@ Testing
 /install*
 /spack-build*
 
+# Agentic session files (never commit)
+/.agents
+/.work
+
 # Specific files in the top level
 /.claude/settings.local.json
 /.claude/worktrees/
