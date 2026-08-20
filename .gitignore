@@ -20,6 +20,9 @@ Testing
 /install*
 /spack-build*
 
+# Agentic session files (never commit)
+/.agents/
+
 # Specific files in the top level
 /.clangd
 /.vscode
