@@ -35,9 +35,10 @@ Miscellaneous utility functions.
 .. command:: celeritas_get_g4env
 
   Set a persistent cache variable from the Geant4 library CMake's
-  configured data location, overriding from environment variables if present.
-  This variable is persistent across configurations and is fetched into the
-  provided variable <var>::
+  configured data location and library paths, overriding from environment
+  variables if present. Also sets LD_LIBRARY_PATH for Geant4 and ROOT
+  library directories. This variable is persistent across configurations
+  and is fetched into the provided variable <var>::
 
     celeritas_get_g4env(<var>)
 
@@ -163,6 +164,25 @@ function(celeritas_get_g4env var)
         list(APPEND _result "${_key}=${_val}")
       endif()
     endforeach()
+    # Add library directories to LD_LIBRARY_PATH so executables
+    # (e.g. celer-export-geant) can find shared libraries at runtime.
+    # Build paths from cmake config dirs: <prefix>/lib64/cmake/<pkg> -> <prefix>/lib64
+    set(_ld_dirs)
+    if(Geant4_DIR)
+      get_filename_component(_dir "${Geant4_DIR}" DIRECTORY)
+      get_filename_component(_dir "${_dir}" DIRECTORY)
+      list(APPEND _ld_dirs "${_dir}")
+    endif()
+    if(ROOT_DIR)
+      get_filename_component(_dir "${ROOT_DIR}" DIRECTORY)
+      get_filename_component(_dir "${_dir}" DIRECTORY)
+      list(APPEND _ld_dirs "${_dir}")
+    endif()
+    if(_ld_dirs)
+      list(REMOVE_DUPLICATES _ld_dirs)
+      string(REPLACE ";" ":" _ld_path "${_ld_dirs}")
+      list(APPEND _result "LD_LIBRARY_PATH=${_ld_path}:$ENV{LD_LIBRARY_PATH}")
+    endif()
     set(CELERITAS_G4ENV "${_result}" CACHE INTERNAL "Environment variables used for CTest")
   endif()
   set(${var} "${CELERITAS_G4ENV}" PARENT_SCOPE)
