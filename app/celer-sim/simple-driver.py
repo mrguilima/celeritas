@@ -213,7 +213,7 @@ def validate_output(j: dict, inp: dict, use_device: bool) -> None:
     time = run_output["time"].copy()
     steps = time.pop("steps")
     if use_device:
-        assert len(steps[0]) == run_output["num_step_iterations"][0], steps[0]
+        assert len(steps[0]) == sum(run_output["num_step_iterations"]), steps[0]
     else:
         # Step times disabled on CPU from input
         assert len(steps[0]) == 0, steps
