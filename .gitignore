@@ -24,8 +24,11 @@ Testing
 
 # Specific directories in the top level
 /.claude/
-/.claude/worktrees/
 /node_modules/
+
+# Agentic session files (never commit)
+/.agents
+/.work
 
 # Specific files in the top level
 /.clangd
