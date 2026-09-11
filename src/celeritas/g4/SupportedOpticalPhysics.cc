@@ -373,6 +373,7 @@ void SupportedOpticalPhysics::ConstructProcess()
             {
                 return;
             }
+
             if (&p == G4OpticalPhoton::Definition())
             {
                 // Geant4 11.4.0-11.4.2 bug
