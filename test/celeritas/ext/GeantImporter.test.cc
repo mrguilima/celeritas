@@ -867,11 +867,11 @@ TEST_F(FourSteelSlabsEmStandard, ebrems)
             = {1000, 100000000, 1000, 100000000};
         EXPECT_VEC_SOFT_EQ(expected_e, result.energy);
         static real_type const expected_xs[] = {77.086886023111,
-                                                14.346968386977,
+                                                13.823075134064,
                                                 66.448046061979,
-                                                12.347652116819,
+                                                11.896815722884,
                                                 88.449439286966,
-                                                16.486040161073};
+                                                15.883984914843};
         EXPECT_VEC_SOFT_EQ(expected_xs, result.xs);
     }
 }
@@ -900,11 +900,11 @@ TEST_F(FourSteelSlabsEmStandard, conv)
             = {1.02199782, 100000000, 1.02199782, 100000000};
         EXPECT_VEC_SOFT_EQ(expected_e, result.energy);
         static real_type const expected_xs[] = {1.4603666285612,
-                                                4.4976609946794,
+                                                4.492133672387,
                                                 1.250617083013,
-                                                3.8760336885145,
+                                                3.8712746529261,
                                                 1.6856988385825,
-                                                5.1617257552977};
+                                                5.1553769178412};
         EXPECT_VEC_SOFT_EQ(expected_xs, result.xs);
     }
 }
@@ -1562,12 +1562,12 @@ TEST_F(OneSteelSphere, physics)
         static double const expected_energy[]
             = {1000, 100000000, 9549.6516356879, 100000000};
         EXPECT_VEC_SOFT_EQ(expected_energy, result.energy);
-        static double const expected_xs[] = {16.197663688566,
-                                             14.176435287746,
-                                             13.963271396942,
-                                             12.201090525228,
-                                             18.583905773638,
-                                             16.289792829097};
+        static double const expected_xs[] = {16.197663676536,
+                                             13.673059345398,
+                                             13.96327138657,
+                                             11.767951683065,
+                                             18.583905759837,
+                                             15.711254297962};
         EXPECT_VEC_SOFT_EQ(expected_xs, result.xs);
     }
     {

@@ -372,6 +372,14 @@ void SupportedOpticalPhysics::ConstructProcess()
             {
                 return;
             }
+            // Scintillation is a source of optical photons: it does not
+            // operate on optical photons themselves, and attaching it to the
+            // optical photon process manager conflicts with the boundary
+            // process ordered last on the same (particle, post-step) slot
+            if (&p == G4OpticalPhoton::OpticalPhoton())
+            {
+                return;
+            }
 
             G4ProcessManager* pm = p.GetProcessManager();
             CELER_ASSERT(pm);
