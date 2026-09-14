@@ -158,6 +158,33 @@ endif()
 
 celer_add_ext_library(Thrust)
 if(CELERITAS_USE_CUDA)
+  # Host-compiled code includes Thrust headers (see AsyncMemoryResource.hh),
+  # so propagate the include directory explicitly: it decouples the build from
+  # any CPATH set by the environment, and it is *required* by the CUDA 13 "cccl"
+  # layout, where the headers live in <prefix>/include/cccl rather than on the
+  # toolkit include path that nvcc would use.
+  #
+  # The directory is copied out as a plain string instead of linking the Thrust
+  # target: thrust-config.cmake declares Thrust::Thrust as an ALIAS of the
+  # *non-imported* INTERFACE library _Thrust_Thrust, so any target reference --
+  # including one inside a $<TARGET_PROPERTY:...> generator expression -- makes
+  # install(EXPORT) fail with "requires target _Thrust_Thrust that is not in any
+  # export set".
+  set(_thrust_includes)
+  foreach(_thrust_target Thrust::Thrust _Thrust_Thrust Thrust::thrust)
+    if(TARGET ${_thrust_target})
+      get_target_property(_dirs ${_thrust_target}
+        INTERFACE_INCLUDE_DIRECTORIES)
+      # Skip generator expressions: they reintroduce the target dependency
+      if(_dirs AND NOT _dirs MATCHES "\\$<")
+        list(APPEND _thrust_includes ${_dirs})
+      endif()
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES _thrust_includes)
+  if(_thrust_includes)
+    target_include_directories(ExtThrust SYSTEM INTERFACE ${_thrust_includes})
+  endif()
   # Perlmutter with RDC enabled complains about missing dlclose
   target_link_libraries(ExtThrust INTERFACE ${CMAKE_DL_LIBS})
 endif()
