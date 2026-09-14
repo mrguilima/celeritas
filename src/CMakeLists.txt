@@ -158,6 +158,13 @@ endif()
 
 celer_add_ext_library(Thrust)
 if(CELERITAS_USE_CUDA)
+  # Host-compiled code includes Thrust headers, so propagate the include path
+  # resolved by thrust-config (the toolkit include dir, or the "cccl" layout
+  # used by newer CUDA 13 toolkits). This decouples the build from any CPATH
+  # set by the environment.
+  if(TARGET Thrust::thrust)
+    target_link_libraries(ExtThrust INTERFACE Thrust::thrust)
+  endif()
   # Perlmutter with RDC enabled complains about missing dlclose
   target_link_libraries(ExtThrust INTERFACE ${CMAKE_DL_LIBS})
 endif()
