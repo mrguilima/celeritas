@@ -162,7 +162,9 @@ if(CELERITAS_USE_CUDA)
   # resolved by thrust-config (the toolkit include dir, or the "cccl" layout
   # used by newer CUDA 13 toolkits). This decouples the build from any CPATH
   # set by the environment.
-  if(TARGET Thrust::thrust)
+  if(TARGET Thrust::Thrust)
+    target_link_libraries(ExtThrust INTERFACE Thrust::Thrust)
+  elseif(TARGET Thrust::thrust)
     target_link_libraries(ExtThrust INTERFACE Thrust::thrust)
   endif()
   # Perlmutter with RDC enabled complains about missing dlclose
