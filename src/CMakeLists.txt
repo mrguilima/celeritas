@@ -162,10 +162,19 @@ if(CELERITAS_USE_CUDA)
   # resolved by thrust-config (the toolkit include dir, or the "cccl" layout
   # used by newer CUDA 13 toolkits). This decouples the build from any CPATH
   # set by the environment.
+  #
+  # Thrust::Thrust is an ALIAS of a non-imported INTERFACE library
+  # (_Thrust_Thrust); linking it into ExtThrust would inject that
+  # non-exportable target into the celeritas-targets export set and break
+  # install(EXPORT). Propagate the include directory by generator expression
+  # instead, which stays relocatable and resolves against the downstream
+  # Thrust installation found by find_dependency(Thrust).
   if(TARGET Thrust::Thrust)
-    target_link_libraries(ExtThrust INTERFACE Thrust::Thrust)
+    target_include_directories(ExtThrust
+      INTERFACE "$<TARGET_PROPERTY:Thrust::Thrust,INTERFACE_INCLUDE_DIRECTORIES>")
   elseif(TARGET Thrust::thrust)
-    target_link_libraries(ExtThrust INTERFACE Thrust::thrust)
+    target_include_directories(ExtThrust
+      INTERFACE "$<TARGET_PROPERTY:Thrust::thrust,INTERFACE_INCLUDE_DIRECTORIES>")
   endif()
   # Perlmutter with RDC enabled complains about missing dlclose
   target_link_libraries(ExtThrust INTERFACE ${CMAKE_DL_LIBS})
