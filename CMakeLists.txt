@@ -332,6 +332,21 @@ if(BUILD_SHARED_LIBS)
   celeritas_set_default(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
   # Do not relink libs/binaries when dependent shared libs change
   celeritas_set_default(CMAKE_LINK_DEPENDS_NO_SHARED ON)
+  # Use DT_RPATH instead of DT_RUNPATH so that an executable's search path is
+  # also applied to the dependencies of its dependencies. DT_RUNPATH applies
+  # only to the direct dependencies of the object that declares it, so a
+  # transitively-loaded library (e.g. a Geant4 library pulled in by
+  # libceleritas) cannot be found unless every object in the chain repeats the
+  # path. Old-style DT_RPATH is inherited, so a single entry per binary is
+  # sufficient.
+  if(NOT DEFINED CELERITAS_DISABLE_NEW_DTAGS)
+    include(CheckLinkerFlag)
+    check_linker_flag(CXX "LINKER:--disable-new-dtags"
+      CELERITAS_DISABLE_NEW_DTAGS)
+  endif()
+  if(CELERITAS_DISABLE_NEW_DTAGS)
+    add_link_options("LINKER:--disable-new-dtags")
+  endif()
 endif()
 set(_default_pic OFF)
 if(BUILD_SHARED_LIBS OR CELERITAS_USE_ROOT)
