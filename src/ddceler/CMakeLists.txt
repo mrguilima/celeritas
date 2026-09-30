@@ -66,18 +66,6 @@ endfunction()
 #----------------------------------------------------------------------------#
 
 get_target_property(_final_lib Celeritas::accel CUDA_RDC_FINAL_LIBRARY)
-if(_final_lib)
-  # Using CUDA RDC: check for other flags as well
-  if(NOT DEFINED CELERITAS_DISABLE_NEW_DTAGS)
-    set(_dtag_flag "--disable-new-dtags")
-    include(CheckLinkerFlag)
-    check_linker_flag(CXX "LINKER:${_dtag_flag}" CELERITAS_DISABLE_NEW_DTAGS)
-    if(CELERITAS_DISABLE_NEW_DTAGS)
-      set(CELERITAS_DISABLE_NEW_DTAGS "${_dtag_flag}" CACHE INTERNAL
-        "flag used to disable dtags")
-    endif()
-  endif()
-endif()
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.25)
   cmake_language(GET_MESSAGE_LOG_LEVEL _orig_log_lev)
@@ -103,11 +91,6 @@ function(celer_dd4hep_plugin target)
       "$<TARGET_LINKER_FILE:${_final_lib}>"
       "-Wl,--pop-state"
     )
-    if(CELERITAS_DISABLE_NEW_DTAGS)
-      set_property(TARGET ${_plugins} APPEND
-        PROPERTY LINK_FLAGS "-Wl,--disable-new-dtags"
-      )
-    endif()
   endif()
 endfunction()
 
